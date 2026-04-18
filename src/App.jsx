@@ -713,7 +713,7 @@ function Landing({ onSubmit }) {
             <CardContent className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm text-white/80">Name or nickname</label>
-                <Input placeholder="Nate" value={form.name} onChange={(e) => update('name', e.target.value)} />
+                <Input value={form.name} onChange={(e) => update('name', e.target.value)} />
               </div>
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth date</label>
@@ -725,7 +725,7 @@ function Landing({ onSubmit }) {
               </div>
               <div className="relative">
                 <label className="mb-2 block text-sm text-white/80">Birth location</label>
-                <Input placeholder="Mumbai, India" value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
+                <Input value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
                 {suggestionsOpen && suggestions.length > 0 && (
                   <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
                     {suggestions.map((place, idx) => (
