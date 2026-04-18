@@ -40,7 +40,6 @@ import {
   MapPin,
   Orbit,
   Globe,
-  Stars,
   ScrollText,
   Gem,
 } from 'lucide-react';
@@ -108,10 +107,13 @@ function getSignDegree(longitude) {
 }
 
 function formatLongitude(longitude) {
-  const sign = getSignName(longitude);
-  const deg = getSignDegree(longitude);
-  const whole = Math.floor(deg);
-  const minutes = Math.round((deg - whole) * 60);
+  const totalMinutes = Math.round(normalizeAngle(longitude) * 60);
+  const roundedLongitude = normalizeAngle(totalMinutes / 60);
+  const sign = getSignName(roundedLongitude);
+  const deg = getSignDegree(roundedLongitude);
+  const normalizedMinutes = ((Math.round(deg * 60) % (30 * 60)) + (30 * 60)) % (30 * 60);
+  const whole = Math.floor(normalizedMinutes / 60);
+  const minutes = normalizedMinutes % 60;
   return `${whole}° ${String(minutes).padStart(2, '0')}′ ${sign}`;
 }
 
@@ -388,7 +390,26 @@ function findBestTransitDate(year, transitBody, natalBody, natalLongitude) {
   return best;
 }
 
-function generateInterpretations(profile, natal, liveData) {
+function computeKeyDates(natal, forecastYear) {
+  const saturnSun = findBestTransitDate(forecastYear, 'Saturn', 'Sun', natal.placementMap.Sun.longitude);
+  const neptuneSun = findBestTransitDate(forecastYear, 'Neptune', 'Sun', natal.placementMap.Sun.longitude);
+  const jupiterMoon = findBestTransitDate(forecastYear, 'Jupiter', 'Moon', natal.placementMap.Moon.longitude);
+  const marsMercury = findBestTransitDate(forecastYear, 'Mars', 'Mercury', natal.placementMap.Mercury.longitude);
+
+  const birthday = natal.localBirth.set({ year: forecastYear });
+  const birthdayPlusWeek = birthday.plus({ days: 8 });
+
+  return [
+    { date: birthday.toFormat('MMM d'), meaning: 'Birthday / solar reset — a personal turning point that tends to reveal what identity is becoming.' },
+    { date: birthdayPlusWeek.toFormat('MMM d'), meaning: 'Post-birthday ignition window — themes started near the birthday often become more visible and active.' },
+    { date: DateTime.fromJSDate(saturnSun.date).toFormat('MMM d'), meaning: 'Saturn closest to natal Sun — structure, limits, responsibility, and maturity come to the forefront.' },
+    { date: DateTime.fromJSDate(neptuneSun.date).toFormat('MMM d'), meaning: 'Neptune strongest on natal Sun themes — heightened intuition, but also a need to verify what is real.' },
+    { date: DateTime.fromJSDate(jupiterMoon.date).toFormat('MMM d'), meaning: 'Jupiter strongest on the Moon — emotional expansion, broader perspective, and opportunities through inner honesty.' },
+    { date: DateTime.fromJSDate(marsMercury.date).toFormat('MMM d'), meaning: 'Mars strongest on Mercury — sharp speech, decisive thought, and the need to avoid overreactive communication.' },
+  ];
+}
+
+function generateInterpretations(profile, natal, liveData, keyDates, forecastYear) {
   if (!profile || !natal) return null;
 
   const sun = natal.placementMap.Sun;
@@ -473,24 +494,6 @@ function generateInterpretations(profile, natal, liveData) {
     },
   };
 
-  const forecastYear = 2026;
-  const saturnSun = findBestTransitDate(forecastYear, 'Saturn', 'Sun', natal.placementMap.Sun.longitude);
-  const neptuneSun = findBestTransitDate(forecastYear, 'Neptune', 'Sun', natal.placementMap.Sun.longitude);
-  const jupiterMoon = findBestTransitDate(forecastYear, 'Jupiter', 'Moon', natal.placementMap.Moon.longitude);
-  const marsMercury = findBestTransitDate(forecastYear, 'Mars', 'Mercury', natal.placementMap.Mercury.longitude);
-
-  const birthday = natal.localBirth.set({ year: forecastYear });
-  const birthdayPlusWeek = birthday.plus({ days: 8 });
-
-  const keyDates = [
-    { date: birthday.toFormat('MMM d'), meaning: 'Birthday / solar reset — a personal turning point that tends to reveal what identity is becoming.' },
-    { date: birthdayPlusWeek.toFormat('MMM d'), meaning: 'Post-birthday ignition window — themes started near the birthday often become more visible and active.' },
-    { date: DateTime.fromJSDate(saturnSun.date).toFormat('MMM d'), meaning: 'Saturn closest to natal Sun — structure, limits, responsibility, and maturity come to the forefront.' },
-    { date: DateTime.fromJSDate(neptuneSun.date).toFormat('MMM d'), meaning: 'Neptune strongest on natal Sun themes — heightened intuition, but also a need to verify what is real.' },
-    { date: DateTime.fromJSDate(jupiterMoon.date).toFormat('MMM d'), meaning: 'Jupiter strongest on the Moon — emotional expansion, broader perspective, and opportunities through inner honesty.' },
-    { date: DateTime.fromJSDate(marsMercury.date).toFormat('MMM d'), meaning: 'Mars strongest on Mercury — sharp speech, decisive thought, and the need to avoid overreactive communication.' },
-  ];
-
   return {
     overview: `${sun.sign} Sun gives the core identity: the way this person initiates, pursues goals, and defines selfhood. ${moon.sign} Moon colors emotional style and instinctive needs. ${mercury.sign} Mercury shapes thinking and communication. ${natal.nakshatra.name} adds a deeper Vedic instinct pattern, while ${natal.chineseZodiac} adds a broader archetypal temperament layer.`,
     personality: personalityIntro,
@@ -502,7 +505,7 @@ function generateInterpretations(profile, natal, liveData) {
     sourcedNote: 'This version is local-first. It does not scrape horoscope sites directly in the browser. A future backend/API layer can add sourced long-form interpretations and citations.',
     transitSummary: topTransit ? `${topTransit.planet} is currently forming a ${topTransit.aspect.toLowerCase()} to natal ${topTransit.natal} with an orb of ${topTransit.orb}°. This is the loudest live signal in the chart right now.` : 'Current transits are relatively moderate, so the focus is on steady movement and follow-through.',
     keyDates,
-    identityForecast: `The near-term developmental pressure is about becoming more structurally honest. Whatever is built on habit, drift, fantasy, or avoidance gets challenged. Whatever is aligned, real, and consciously chosen gets stronger.`,
+    identityForecast: `The near-term developmental pressure in ${forecastYear} is about becoming more structurally honest. Whatever is built on habit, drift, fantasy, or avoidance gets challenged. Whatever is aligned, real, and consciously chosen gets stronger.`,
   };
 }
 
@@ -522,6 +525,61 @@ function usePersistedState() {
     } catch {}
   }, [state]);
   return [state, setState];
+}
+
+function formatBirthDateInput(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  const month = digits.slice(0, 2);
+  const day = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+  if (digits.length <= 2) return month;
+  if (digits.length <= 4) return `${month}/${day}`;
+  return `${month}/${day}/${year}`;
+}
+
+function parseBirthDateToISO(value) {
+  const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  const year = Number(m[3]);
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  const dt = DateTime.fromObject({ year, month, day });
+  if (!dt.isValid) return null;
+  return dt.toFormat('yyyy-LL-dd');
+}
+
+function formatBirthTimeInput(value) {
+  const normalized = value.toUpperCase().replace(/[^0-9APM]/g, '');
+  const digits = normalized.replace(/[APM]/g, '').slice(0, 4);
+  const suffixRaw = normalized.replace(/[0-9]/g, '').slice(0, 2);
+  const hour = digits.slice(0, 2);
+  const minute = digits.slice(2, 4);
+  const suffix = suffixRaw.startsWith('A') ? 'AM' : suffixRaw.startsWith('P') ? 'PM' : suffixRaw;
+  let output = hour;
+  if (digits.length > 2) output += `:${minute}`;
+  if (suffix) output += ` ${suffix}`;
+  return output;
+}
+
+function parseBirthTimeTo24h(value) {
+  const m = value.match(/^(\d{1,2}):(\d{2})\s?(AM|PM)$/i);
+  if (!m) return null;
+  let hour = Number(m[1]);
+  const minute = Number(m[2]);
+  const ampm = m[3].toUpperCase();
+  if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null;
+  if (ampm === 'PM' && hour !== 12) hour += 12;
+  if (ampm === 'AM' && hour === 12) hour = 0;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function toggleBirthTimePeriod(value) {
+  if (/AM$/i.test(value)) return value.replace(/AM$/i, 'PM');
+  if (/PM$/i.test(value)) return value.replace(/PM$/i, 'AM');
+  if (/^\d{1,2}:\d{2}$/i.test(value.trim())) return `${value.trim()} AM`;
+  return value;
 }
 
 function Card({ className = '', children }) {
@@ -582,17 +640,17 @@ function TinyStat({ label, value, icon: Icon, darkMode }) {
   );
 }
 
-function ExpandableBlock({ title, children }) {
+function ExpandableBlock({ title, children, darkMode = true }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className={cn('rounded-2xl border p-4', darkMode ? 'border-white/10 bg-white/5' : 'border-slate-200/80 bg-white')}>
       <div className="flex items-center justify-between gap-3">
         <div className="font-medium">{title}</div>
-        <button onClick={() => setOpen(!open)} className="rounded-xl bg-white/10 px-3 py-1 text-sm hover:bg-white/15">
+        <button onClick={() => setOpen(!open)} className={cn('rounded-xl px-3 py-1 text-sm', darkMode ? 'bg-white/10 hover:bg-white/15' : 'bg-slate-100 hover:bg-slate-200')}>
           {open ? 'Show less' : 'Show more'}
         </button>
       </div>
-      {open ? <div className="mt-3 text-sm leading-7 text-white/75">{children}</div> : null}
+      {open ? <div className={cn('mt-3 text-sm leading-7', darkMode ? 'text-white/75' : 'text-slate-600')}>{children}</div> : null}
     </div>
   );
 }
@@ -611,15 +669,15 @@ function Sticker({ kind, label }) {
   return <div className={common}><div className="text-4xl">✨</div><div className="sr-only">{label}</div></div>;
 }
 
-function IdentityCard({ title, subtitle, stickerKind, label }) {
+function IdentityCard({ title, subtitle, stickerKind, label, darkMode = true }) {
   return (
-    <Card className="rounded-[2rem] border border-white/10 bg-white/5 text-white backdrop-blur-md">
+    <Card className={cn('rounded-[2rem] border backdrop-blur-md', darkMode ? 'border-white/10 bg-white/5 text-white' : 'border-slate-200/80 bg-white text-slate-900')}>
       <CardContent className="p-5">
         <div className="flex items-center gap-4">
           <Sticker kind={stickerKind} label={label} />
           <div>
             <div className="text-lg font-semibold">{title}</div>
-            <div className="mt-1 text-sm text-white/70">{subtitle}</div>
+            <div className={cn('mt-1 text-sm', darkMode ? 'text-white/70' : 'text-slate-600')}>{subtitle}</div>
           </div>
         </div>
       </CardContent>
@@ -672,10 +730,17 @@ function Landing({ onSubmit }) {
     setError('');
     setLoading(true);
     try {
+      const normalizedBirthDate = parseBirthDateToISO(form.birthDate);
+      if (!normalizedBirthDate) throw new Error('Use birth date format MM/DD/YYYY.');
+      const normalizedBirthTime = parseBirthTimeTo24h(form.birthTime);
+      if (!normalizedBirthTime) throw new Error('Use birth time format HH:MM AM or HH:MM PM.');
+
       let resolved = selectedLocation;
       if (!resolved) resolved = await resolveLocation(form.location);
       onSubmit({
         ...form,
+        birthDate: normalizedBirthDate,
+        birthTime: normalizedBirthTime,
         location: resolved.label,
         locationLabel: resolved.label,
         latitude: resolved.latitude,
@@ -690,18 +755,21 @@ function Landing({ onSubmit }) {
     }
   };
 
-  const disabled = !form.birthDate || !form.birthTime || !form.location;
+  const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(208,90,255,0.24),_transparent_30%),radial-gradient(circle_at_80%_20%,_rgba(255,185,91,0.26),_transparent_25%),linear-gradient(180deg,#100523_0%,#190b36_35%,#0b1225_100%)] px-4 py-8 text-white">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8">
-          <BadgePill className="bg-fuchsia-500/20 text-fuchsia-200">{APP_NAME}</BadgePill>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">Enter a birth profile and generate a detailed, playful personal astrology portrait.</h1>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_15%_12%,rgba(255,181,112,0.34),transparent_35%),radial-gradient(circle_at_85%_18%,rgba(255,132,96,0.26),transparent_28%),radial-gradient(circle_at_50%_100%,rgba(255,98,136,0.22),transparent_38%),linear-gradient(180deg,#22063b_0%,#2c0d3a_38%,#190d2d_100%)] px-4 py-10 text-white">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-8 text-center">
+          <BadgePill className="bg-rose-400/20 text-rose-100">✨ {APP_NAME}</BadgePill>
+          <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic cutie profile.</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">
+            Drop in your birth details and we&apos;ll generate a playful, personal astrology portrait with real chart math under the hood.
+          </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_.95fr]">
-          <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
+        <div className="mx-auto max-w-2xl">
+          <Card className="rounded-[2rem] border border-white/15 bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-md shadow-[0_30px_80px_rgba(255,130,90,0.16)]">
             <CardHeader>
               <CardTitle>Start your chart</CardTitle>
               <CardDescription className="text-white/70">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
@@ -709,19 +777,37 @@ function Landing({ onSubmit }) {
             <CardContent className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm text-white/80">Name or nickname</label>
-                <Input placeholder="Nate" value={form.name} onChange={(e) => update('name', e.target.value)} />
+                <Input value={form.name} onChange={(e) => update('name', e.target.value)} />
               </div>
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth date</label>
-                <Input type="date" value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="MM/DD/YYYY"
+                  value={form.birthDate}
+                  onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
+                />
               </div>
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth time</label>
-                <Input type="time" value={form.birthTime} onChange={(e) => update('birthTime', e.target.value)} />
+                <Input
+                  type="text"
+                  inputMode="text"
+                  placeholder="HH:MM AM"
+                  value={form.birthTime}
+                  onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      update('birthTime', toggleBirthTimePeriod(form.birthTime));
+                    }
+                  }}
+                />
               </div>
               <div className="relative">
                 <label className="mb-2 block text-sm text-white/80">Birth location</label>
-                <Input placeholder="Mumbai, India" value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
+                <Input value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
                 {suggestionsOpen && suggestions.length > 0 && (
                   <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
                     {suggestions.map((place, idx) => (
@@ -745,11 +831,6 @@ function Landing({ onSubmit }) {
               </button>
             </CardContent>
           </Card>
-
-          <div className="grid gap-4">
-            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md"><CardContent className="p-5"><div className="flex items-center gap-3 text-lg font-semibold"><Globe className="h-5 w-5 text-cyan-300" /> International-ready input</div><p className="mt-2 text-sm leading-6 text-white/70">Location suggestions appear while typing, and the chosen place is used to resolve timezone before chart calculation.</p></CardContent></Card>
-            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md"><CardContent className="p-5"><div className="flex items-center gap-3 text-lg font-semibold"><Stars className="h-5 w-5 text-violet-300" /> More visual delight</div><p className="mt-2 text-sm leading-6 text-white/70">This version introduces cute sticker-style identity icons and richer presentation layers.</p></CardContent></Card>
-          </div>
         </div>
       </div>
     </div>
@@ -759,6 +840,7 @@ function Landing({ onSubmit }) {
 export default function App() {
   const [state, setState] = usePersistedState();
   const [now, setNow] = useState(new Date());
+  const forecastYear = now.getFullYear();
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60000);
@@ -837,7 +919,15 @@ export default function App() {
     return { planets, strongest, orbMeters, shadowRadar, yearHeat, cosmicWeather };
   }, [now, natal]);
 
-  const interpretations = useMemo(() => generateInterpretations(state.profile, natal, liveData), [state.profile, natal, liveData]);
+  const keyDates = useMemo(() => {
+    if (!natal) return [];
+    return computeKeyDates(natal, forecastYear);
+  }, [natal, forecastYear]);
+
+  const interpretations = useMemo(
+    () => generateInterpretations(state.profile, natal, liveData, keyDates, forecastYear),
+    [state.profile, natal, liveData, keyDates, forecastYear]
+  );
 
   const themeShell = state.ui.darkMode
     ? 'bg-[radial-gradient(circle_at_top,_rgba(208,90,255,0.24),_transparent_30%),radial-gradient(circle_at_80%_20%,_rgba(255,185,91,0.26),_transparent_25%),linear-gradient(180deg,#100523_0%,#190b36_35%,#0b1225_100%)] text-white'
@@ -848,9 +938,32 @@ export default function App() {
     : 'rounded-[2rem] border border-slate-200/70 bg-white/80 text-slate-900 backdrop-blur-md';
 
   const textMuted = state.ui.darkMode ? 'text-white/70' : 'text-slate-600';
+  const sectionBorder = state.ui.darkMode ? 'border-white/10' : 'border-slate-200/80';
+  const surfaceBase = state.ui.darkMode ? 'border-white/10 bg-white/5' : 'border-slate-200/80 bg-white';
+  const surfaceSoft = state.ui.darkMode ? 'bg-white/5' : 'bg-slate-100/80';
+  const accentText = state.ui.darkMode ? 'text-white/80' : 'text-slate-700';
   const setTab = (group, value) => setState((s) => ({ ...s, ui: { ...s.ui, activeDomainTab: { ...s.ui.activeDomainTab, [group]: value } } }));
 
   if (!state.profile) return <Landing onSubmit={(profile) => setState((s) => ({ ...s, profile }))} />;
+  if (!natal) {
+    return (
+      <div className="min-h-screen bg-slate-950 px-4 py-10 text-white">
+        <div className="mx-auto max-w-2xl rounded-3xl border border-rose-300/20 bg-rose-500/10 p-6">
+          <h1 className="text-2xl font-semibold">We couldn&apos;t load this saved chart.</h1>
+          <p className="mt-3 text-sm text-white/80">
+            The stored profile is missing valid birth date/time/timezone data. Start a fresh chart to continue.
+          </p>
+          <button
+            type="button"
+            onClick={() => setState((s) => ({ ...s, profile: null }))}
+            className="mt-4 rounded-2xl bg-white/15 px-4 py-2 text-sm font-medium text-white hover:bg-white/25"
+          >
+            Start new chart
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const chineseAnimal = getChineseAnimal(natal.chineseZodiac);
 
@@ -868,12 +981,12 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => setState((s) => ({ ...s, profile: null }))} className="rounded-2xl bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15">New chart</button>
+            <button onClick={() => setState((s) => ({ ...s, profile: null }))} className={cn('rounded-2xl px-4 py-2 text-sm', state.ui.darkMode ? 'bg-white/10 text-white hover:bg-white/15' : 'bg-slate-900/10 text-slate-800 hover:bg-slate-900/15')}>New chart</button>
             <Toggle checked={state.ui.darkMode} onChange={(v) => setState((s) => ({ ...s, ui: { ...s.ui, darkMode: v } }))} />
           </div>
         </div>
 
-        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white/10 p-6 md:p-8">
+        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className={cn('rounded-[2rem] border p-6 md:p-8', sectionBorder)}>
           <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
             <div>
               <h2 className="max-w-3xl text-3xl font-semibold leading-tight md:text-5xl">A playful personal dossier with real astrology under the hood.</h2>
@@ -896,9 +1009,9 @@ export default function App() {
         <div className="mt-8 grid gap-10">
           <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode}>
             <div className="grid gap-4 md:grid-cols-3">
-              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerKind={natal.sunSign === 'Aries' ? 'aries' : 'default'} label={natal.sunSign} />
-              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerKind={natal.nakshatra.name === 'Bharani' ? 'bharani' : 'default'} label={natal.nakshatra.name} />
-              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerKind={chineseAnimal === 'Dragon' ? 'dragon' : 'default'} label={natal.chineseZodiac} />
+              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerKind={natal.sunSign === 'Aries' ? 'aries' : 'default'} label={natal.sunSign} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerKind={natal.nakshatra.name === 'Bharani' ? 'bharani' : 'default'} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerKind={chineseAnimal === 'Dragon' ? 'dragon' : 'default'} label={natal.chineseZodiac} darkMode={state.ui.darkMode} />
             </div>
           </Section>
 
@@ -908,7 +1021,7 @@ export default function App() {
                 <CardHeader><CardTitle>Deep personality read</CardTitle><CardDescription className={textMuted}>A longer portrait instead of just a sign label.</CardDescription></CardHeader>
                 <CardContent className="space-y-4">
                   <p className={cn('leading-8', textMuted)}>{interpretations.personality}</p>
-                  <ExpandableBlock title="Why this matters in daily life">
+                  <ExpandableBlock title="Why this matters in daily life" darkMode={state.ui.darkMode}>
                     The point of this reading is not just symbolic flair. It is to translate personality structure into lived experience: how the person reacts, how they decide, what kind of environment sharpens them, what kind of environment drains them, and what they are actually trying to become when they are not merely coping.
                   </ExpandableBlock>
                 </CardContent>
@@ -916,7 +1029,7 @@ export default function App() {
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Action guidance</CardTitle><CardDescription className={textMuted}>The practical side of the portrait.</CardDescription></CardHeader>
                 <CardContent className="space-y-3">
-                  {interpretations.actionGuidance.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6">{item}</div>)}
+                  {interpretations.actionGuidance.map((item) => <div key={item} className={cn('rounded-2xl border p-4 text-sm leading-6', surfaceBase)}>{item}</div>)}
                 </CardContent>
               </Card>
             </div>
@@ -940,10 +1053,10 @@ export default function App() {
                 {interpretations.shadowItems.map((item) => <Card key={item.title} className={cardBase}><CardContent className="p-5"><div className="text-lg font-semibold">{item.title}</div><p className={cn('mt-2 text-sm leading-7', textMuted)}>{item.body}</p></CardContent></Card>)}
               </div>
             </div>
-            <Card className={cn(cardBase, 'mt-6')}><CardHeader><CardTitle>Highest expression</CardTitle><CardDescription className={textMuted}>Where the chart can go when the person matures into it.</CardDescription></CardHeader><CardContent className="space-y-3">{interpretations.highestExpression.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6">{item}</div>)}</CardContent></Card>
+            <Card className={cn(cardBase, 'mt-6')}><CardHeader><CardTitle>Highest expression</CardTitle><CardDescription className={textMuted}>Where the chart can go when the person matures into it.</CardDescription></CardHeader><CardContent className="space-y-3">{interpretations.highestExpression.map((item) => <div key={item} className={cn('rounded-2xl border p-4 text-sm leading-6', surfaceBase)}>{item}</div>)}</CardContent></Card>
           </Section>
 
-          <Section id="forecast" title="2026 Forecast" subtitle="Now using computed key dates rather than generic placeholders." darkMode={state.ui.darkMode}>
+          <Section id="forecast" title={`${forecastYear} Forecast`} subtitle="Now using computed key dates rather than generic placeholders." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Year contour</CardTitle><CardDescription className={textMuted}>A mobile-friendly heatmap of domain intensity.</CardDescription></CardHeader>
@@ -953,7 +1066,7 @@ export default function App() {
                       <div className={textMuted}>{m.month}</div>
                       {['love', 'money', 'career', 'health', 'identity'].map((k) => {
                         const v = m[k];
-                        return <div key={k} className="rounded-xl px-2 py-2 text-center font-medium" style={{ background: `linear-gradient(90deg, rgba(244,114,182,.18), rgba(168,85,247,${v / 100}))` }}>{v}</div>;
+                        return <div key={k} className={cn('rounded-xl px-2 py-2 text-center font-medium', state.ui.darkMode ? '' : 'text-slate-800')} style={{ background: `linear-gradient(90deg, rgba(244,114,182,.18), rgba(168,85,247,${v / 100}))` }}>{v}</div>;
                       })}
                     </div>
                   ))}
@@ -967,12 +1080,12 @@ export default function App() {
             </div>
           </Section>
 
-          <Section id="dates" title="2026 Key Dates + Life Domains" subtitle="Specific forecast windows and domain-level interpretation." darkMode={state.ui.darkMode}>
+          <Section id="dates" title={`${forecastYear} Key Dates + Life Domains`} subtitle="Specific forecast windows and domain-level interpretation." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}>
-                <CardHeader><CardTitle>Key dates to watch</CardTitle><CardDescription className={textMuted}>Computed from birthday timing plus strongest transit proximity in 2026.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Key dates to watch</CardTitle><CardDescription className={textMuted}>{`Computed from birthday timing plus strongest transit proximity in ${forecastYear}.`}</CardDescription></CardHeader>
                 <CardContent className="space-y-3">
-                  {interpretations.keyDates.map((item) => <div key={`${item.date}-${item.meaning}`} className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="font-medium">{item.date}</div><div className={cn('mt-1 text-sm', textMuted)}>{item.meaning}</div></div>)}
+                  {interpretations.keyDates.map((item) => <div key={`${item.date}-${item.meaning}`} className={cn('rounded-2xl border p-4', surfaceBase)}><div className="font-medium">{item.date}</div><div className={cn('mt-1 text-sm', textMuted)}>{item.meaning}</div></div>)}
                 </CardContent>
               </Card>
               <Card className={cardBase}>
@@ -981,11 +1094,11 @@ export default function App() {
                   {[{ id: 'love', title: 'Love', icon: Heart }, { id: 'money', title: 'Money', icon: Coins }, { id: 'career', title: 'Career', icon: Briefcase }].map(({ id, title, icon: Icon }) => {
                     const active = state.ui.activeDomainTab[id] || 'now';
                     return (
-                      <div key={id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <div key={id} className={cn('rounded-2xl border p-4', surfaceBase)}>
                         <div className="mb-3 flex items-center gap-2 text-lg font-semibold"><Icon className="h-5 w-5" />{title}</div>
-                        <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl bg-white/5 p-1">
+                        <div className={cn('mb-3 grid grid-cols-3 gap-2 rounded-2xl p-1', surfaceSoft)}>
                           {['now', 'year', 'shadow'].map((tab) => (
-                            <button key={tab} onClick={() => setTab(id, tab)} className={cn('rounded-2xl px-3 py-2 text-sm transition', active === tab ? 'bg-fuchsia-500/30 text-white ring-1 ring-fuchsia-300/50' : 'bg-white/5 text-white/80 hover:bg-white/10')}>
+                            <button key={tab} onClick={() => setTab(id, tab)} className={cn('rounded-2xl px-3 py-2 text-sm transition', active === tab ? 'bg-fuchsia-500/30 text-white ring-1 ring-fuchsia-300/50' : (state.ui.darkMode ? 'bg-white/5 text-white/80 hover:bg-white/10' : 'bg-slate-900/5 text-slate-700 hover:bg-slate-900/10'))}>
                               {tab === 'year' ? 'Year' : tab[0].toUpperCase() + tab.slice(1)}
                             </button>
                           ))}
@@ -1001,8 +1114,8 @@ export default function App() {
 
           <Section id="transits" title="Current Transits" subtitle="The live astronomy layer feeding the present-tense reading." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-              <Card className={cardBase}><CardHeader><CardTitle>Orb meters</CardTitle><CardDescription className={textMuted}>Current transit pressure against natal points.</CardDescription></CardHeader><CardContent className="space-y-4">{liveData.orbMeters.map((m) => <div key={m.name} className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between gap-3"><div className="font-medium">{m.name}</div><div className="text-sm text-white/70">{m.value}%</div></div><div className="mt-3"><ProgressBar value={m.value} /></div><p className={cn('mt-3 text-sm', textMuted)}>{m.note}</p></div>)}</CardContent></Card>
-              <Card className={cardBase}><CardHeader><CardTitle>Current planets</CardTitle><CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription></CardHeader><CardContent className="space-y-3">{liveData.planets.map((planet) => <div key={planet.body} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-lg">{zodiacGlyph(planet.sign)}</div><div><div className="font-medium">{planet.body}</div><div className={cn('text-sm', textMuted)}>{planet.formatted}</div></div></div><div className="text-right text-sm">{planet.retrograde && <div className="text-amber-300">Rx</div>}{planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}</div></div>)}</CardContent></Card>
+              <Card className={cardBase}><CardHeader><CardTitle>Orb meters</CardTitle><CardDescription className={textMuted}>Current transit pressure against natal points.</CardDescription></CardHeader><CardContent className="space-y-4">{liveData.orbMeters.map((m) => <div key={m.name} className={cn('rounded-2xl border p-4', surfaceBase)}><div className="flex items-center justify-between gap-3"><div className="font-medium">{m.name}</div><div className={cn('text-sm', state.ui.darkMode ? 'text-white/70' : 'text-slate-600')}>{m.value}%</div></div><div className="mt-3"><ProgressBar value={m.value} /></div><p className={cn('mt-3 text-sm', textMuted)}>{m.note}</p></div>)}</CardContent></Card>
+              <Card className={cardBase}><CardHeader><CardTitle>Current planets</CardTitle><CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription></CardHeader><CardContent className="space-y-3">{liveData.planets.map((planet) => <div key={planet.body} className={cn('flex items-center justify-between rounded-2xl border p-3', surfaceBase)}><div className="flex items-center gap-3"><div className={cn('flex h-10 w-10 items-center justify-center rounded-full border text-lg', state.ui.darkMode ? 'border-white/10 bg-white/10' : 'border-slate-200 bg-slate-100', accentText)}>{zodiacGlyph(planet.sign)}</div><div><div className="font-medium">{planet.body}</div><div className={cn('text-sm', textMuted)}>{planet.formatted}</div></div></div><div className="text-right text-sm">{planet.retrograde && <div className="text-amber-300">Rx</div>}{planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}</div></div>)}</CardContent></Card>
             </div>
           </Section>
         </div>
