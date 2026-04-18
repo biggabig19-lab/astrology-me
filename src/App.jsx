@@ -62,6 +62,21 @@ const NAKSHATRAS = [
   'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
   'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishta', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'
 ];
+const ZODIAC_EMOJI = {
+  Aries: '🐏', Taurus: '🐂', Gemini: '👯', Cancer: '🦀', Leo: '🦁', Virgo: '🌾',
+  Libra: '⚖️', Scorpio: '🦂', Sagittarius: '🏹', Capricorn: '🐐', Aquarius: '🏺', Pisces: '🐟',
+};
+const NAKSHATRA_EMOJI = {
+  Ashwini: '🐎', Bharani: '🐘', Krittika: '🔥', Rohini: '🌸', Mrigashira: '🦌', Ardra: '⛈️',
+  Punarvasu: '🏹', Pushya: '🌼', Ashlesha: '🐍', Magha: '👑', 'Purva Phalguni': '🎨', 'Uttara Phalguni': '🌞',
+  Hasta: '✋', Chitra: '💎', Swati: '🌬️', Vishakha: '🌿', Anuradha: '🤝', Jyeshtha: '🛡️',
+  Mula: '🌱', 'Purva Ashadha': '💧', 'Uttara Ashadha': '🏔️', Shravana: '👂', Dhanishta: '🥁', Shatabhisha: '🌌',
+  'Purva Bhadrapada': '⚡', 'Uttara Bhadrapada': '🐠', Revati: '🛶',
+};
+const CHINESE_ANIMAL_EMOJI = {
+  Rat: '🐀', Ox: '🐂', Tiger: '🐅', Rabbit: '🐇', Dragon: '🐉', Snake: '🐍',
+  Horse: '🐎', Goat: '🐐', Monkey: '🐒', Rooster: '🐓', Dog: '🐕', Pig: '🐖',
+};
 
 const BODY_GLYPHS = {
   Sun: '☉',
@@ -216,10 +231,6 @@ function getChineseZodiac(date) {
   const animal = animals[(approxYear - 4) % 12];
   const element = elements[(approxYear - 4) % 10];
   return `${element} ${animal}`;
-}
-
-function getChineseAnimal(zodiacString) {
-  return zodiacString.split(' ').pop();
 }
 
 async function resolveLocation(query) {
@@ -676,26 +687,27 @@ function ExpandableBlock({ title, children, darkMode = true }) {
   );
 }
 
-function Sticker({ kind, label }) {
-  const common = 'h-24 w-24 rounded-[2rem] border border-white/20 bg-white/10 backdrop-blur-sm shadow-xl flex items-center justify-center';
-  if (kind === 'aries') {
-    return <div className={common}><div className="text-5xl">🐏</div><div className="sr-only">{label}</div></div>;
+function identityEmoji(type, label) {
+  if (type === 'sun') return ZODIAC_EMOJI[label] || '✨';
+  if (type === 'nakshatra') return NAKSHATRA_EMOJI[label] || '✨';
+  if (type === 'chinese') {
+    const animal = label.split(' ').pop();
+    return CHINESE_ANIMAL_EMOJI[animal] || '✨';
   }
-  if (kind === 'bharani') {
-    return <div className={common}><div className="text-5xl">🐘</div><div className="sr-only">{label}</div></div>;
-  }
-  if (kind === 'dragon') {
-    return <div className={common}><div className="text-5xl">🐉</div><div className="sr-only">{label}</div></div>;
-  }
-  return <div className={common}><div className="text-4xl">✨</div><div className="sr-only">{label}</div></div>;
+  return '✨';
 }
 
-function IdentityCard({ title, subtitle, stickerKind, label, darkMode = true }) {
+function Sticker({ emoji, label }) {
+  const common = 'h-24 w-24 rounded-[2rem] border border-white/20 bg-white/10 backdrop-blur-sm shadow-xl flex items-center justify-center';
+  return <div className={common}><div className="text-5xl">{emoji || '✨'}</div><div className="sr-only">{label}</div></div>;
+}
+
+function IdentityCard({ title, subtitle, stickerEmoji, label, darkMode = true }) {
   return (
     <Card className={cn('rounded-[2rem] border backdrop-blur-md', darkMode ? 'border-white/10 bg-white/5 text-white' : 'border-slate-200/80 bg-white text-slate-900')}>
       <CardContent className="p-5">
         <div className="flex items-center gap-4">
-          <Sticker kind={stickerKind} label={label} />
+          <Sticker emoji={stickerEmoji} label={label} />
           <div>
             <div className="text-lg font-semibold">{title}</div>
             <div className={cn('mt-1 text-sm', darkMode ? 'text-white/70' : 'text-slate-600')}>{subtitle}</div>
@@ -1003,8 +1015,6 @@ export default function App() {
     );
   }
 
-  const chineseAnimal = getChineseAnimal(natal.chineseZodiac);
-
   return (
     <div className={cn('min-h-screen overflow-x-clip transition-colors duration-300', themeShell)}>
       <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
@@ -1084,9 +1094,9 @@ export default function App() {
         <div className="mt-8 grid gap-10">
           <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.identity} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, identity: !prev.identity }))}>
             <div className="grid gap-4 md:grid-cols-3">
-              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerKind={natal.sunSign === 'Aries' ? 'aries' : 'default'} label={natal.sunSign} darkMode={state.ui.darkMode} />
-              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerKind={natal.nakshatra.name === 'Bharani' ? 'bharani' : 'default'} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
-              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerKind={chineseAnimal === 'Dragon' ? 'dragon' : 'default'} label={natal.chineseZodiac} darkMode={state.ui.darkMode} />
+              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerEmoji={identityEmoji('sun', natal.sunSign)} label={natal.sunSign} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerEmoji={identityEmoji('nakshatra', natal.nakshatra.name)} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerEmoji={identityEmoji('chinese', natal.chineseZodiac)} label={natal.chineseZodiac} darkMode={state.ui.darkMode} />
             </div>
           </Section>
 
