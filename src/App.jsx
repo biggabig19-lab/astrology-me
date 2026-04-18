@@ -576,6 +576,13 @@ function parseBirthTimeTo24h(value) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
+function toggleBirthTimePeriod(value) {
+  if (/AM$/i.test(value)) return value.replace(/AM$/i, 'PM');
+  if (/PM$/i.test(value)) return value.replace(/PM$/i, 'AM');
+  if (/^\d{1,2}:\d{2}$/i.test(value.trim())) return `${value.trim()} AM`;
+  return value;
+}
+
 function Card({ className = '', children }) {
   return <div className={className}>{children}</div>;
 }
@@ -788,6 +795,12 @@ function Landing({ onSubmit }) {
                   placeholder="HH:MM AM"
                   value={form.birthTime}
                   onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      update('birthTime', toggleBirthTimePeriod(form.birthTime));
+                    }
+                  }}
                 />
               </div>
               <div className="relative">
