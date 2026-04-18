@@ -40,7 +40,6 @@ import {
   MapPin,
   Orbit,
   Globe,
-  Stars,
   ScrollText,
   Gem,
 } from 'lucide-react';
@@ -759,15 +758,18 @@ function Landing({ onSubmit }) {
   const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(208,90,255,0.24),_transparent_30%),radial-gradient(circle_at_80%_20%,_rgba(255,185,91,0.26),_transparent_25%),linear-gradient(180deg,#100523_0%,#190b36_35%,#0b1225_100%)] px-4 py-8 text-white">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8">
-          <BadgePill className="bg-fuchsia-500/20 text-fuchsia-200">{APP_NAME}</BadgePill>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">Enter a birth profile and generate a detailed, playful personal astrology portrait.</h1>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_15%_12%,rgba(255,181,112,0.34),transparent_35%),radial-gradient(circle_at_85%_18%,rgba(255,132,96,0.26),transparent_28%),radial-gradient(circle_at_50%_100%,rgba(255,98,136,0.22),transparent_38%),linear-gradient(180deg,#22063b_0%,#2c0d3a_38%,#190d2d_100%)] px-4 py-10 text-white">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-8 text-center">
+          <BadgePill className="bg-rose-400/20 text-rose-100">✨ {APP_NAME}</BadgePill>
+          <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic cutie profile.</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">
+            Drop in your birth details and we&apos;ll generate a playful, personal astrology portrait with real chart math under the hood.
+          </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_.95fr]">
-          <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
+        <div className="mx-auto max-w-2xl">
+          <Card className="rounded-[2rem] border border-white/15 bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-md shadow-[0_30px_80px_rgba(255,130,90,0.16)]">
             <CardHeader>
               <CardTitle>Start your chart</CardTitle>
               <CardDescription className="text-white/70">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
@@ -829,11 +831,6 @@ function Landing({ onSubmit }) {
               </button>
             </CardContent>
           </Card>
-
-          <div className="grid gap-4">
-            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md"><CardContent className="p-5"><div className="flex items-center gap-3 text-lg font-semibold"><Globe className="h-5 w-5 text-cyan-300" /> International-ready input</div><p className="mt-2 text-sm leading-6 text-white/70">Location suggestions appear while typing, and the chosen place is used to resolve timezone before chart calculation.</p></CardContent></Card>
-            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md"><CardContent className="p-5"><div className="flex items-center gap-3 text-lg font-semibold"><Stars className="h-5 w-5 text-violet-300" /> More visual delight</div><p className="mt-2 text-sm leading-6 text-white/70">This version introduces cute sticker-style identity icons and richer presentation layers.</p></CardContent></Card>
-          </div>
         </div>
       </div>
     </div>
