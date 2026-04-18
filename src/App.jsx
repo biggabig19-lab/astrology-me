@@ -586,17 +586,17 @@ function TinyStat({ label, value, icon: Icon, darkMode }) {
   );
 }
 
-function ExpandableBlock({ title, children }) {
+function ExpandableBlock({ title, children, darkMode = true }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className={cn('rounded-2xl border p-4', darkMode ? 'border-white/10 bg-white/5' : 'border-slate-200/80 bg-white')}>
       <div className="flex items-center justify-between gap-3">
         <div className="font-medium">{title}</div>
-        <button onClick={() => setOpen(!open)} className="rounded-xl bg-white/10 px-3 py-1 text-sm hover:bg-white/15">
+        <button onClick={() => setOpen(!open)} className={cn('rounded-xl px-3 py-1 text-sm', darkMode ? 'bg-white/10 hover:bg-white/15' : 'bg-slate-100 hover:bg-slate-200')}>
           {open ? 'Show less' : 'Show more'}
         </button>
       </div>
-      {open ? <div className="mt-3 text-sm leading-7 text-white/75">{children}</div> : null}
+      {open ? <div className={cn('mt-3 text-sm leading-7', darkMode ? 'text-white/75' : 'text-slate-600')}>{children}</div> : null}
     </div>
   );
 }
@@ -615,15 +615,15 @@ function Sticker({ kind, label }) {
   return <div className={common}><div className="text-4xl">✨</div><div className="sr-only">{label}</div></div>;
 }
 
-function IdentityCard({ title, subtitle, stickerKind, label }) {
+function IdentityCard({ title, subtitle, stickerKind, label, darkMode = true }) {
   return (
-    <Card className="rounded-[2rem] border border-white/10 bg-white/5 text-white backdrop-blur-md">
+    <Card className={cn('rounded-[2rem] border backdrop-blur-md', darkMode ? 'border-white/10 bg-white/5 text-white' : 'border-slate-200/80 bg-white text-slate-900')}>
       <CardContent className="p-5">
         <div className="flex items-center gap-4">
           <Sticker kind={stickerKind} label={label} />
           <div>
             <div className="text-lg font-semibold">{title}</div>
-            <div className="mt-1 text-sm text-white/70">{subtitle}</div>
+            <div className={cn('mt-1 text-sm', darkMode ? 'text-white/70' : 'text-slate-600')}>{subtitle}</div>
           </div>
         </div>
       </CardContent>
@@ -861,6 +861,10 @@ export default function App() {
     : 'rounded-[2rem] border border-slate-200/70 bg-white/80 text-slate-900 backdrop-blur-md';
 
   const textMuted = state.ui.darkMode ? 'text-white/70' : 'text-slate-600';
+  const sectionBorder = state.ui.darkMode ? 'border-white/10' : 'border-slate-200/80';
+  const surfaceBase = state.ui.darkMode ? 'border-white/10 bg-white/5' : 'border-slate-200/80 bg-white';
+  const surfaceSoft = state.ui.darkMode ? 'bg-white/5' : 'bg-slate-100/80';
+  const accentText = state.ui.darkMode ? 'text-white/80' : 'text-slate-700';
   const setTab = (group, value) => setState((s) => ({ ...s, ui: { ...s.ui, activeDomainTab: { ...s.ui.activeDomainTab, [group]: value } } }));
 
   if (!state.profile) return <Landing onSubmit={(profile) => setState((s) => ({ ...s, profile }))} />;
@@ -905,7 +909,7 @@ export default function App() {
           </div>
         </div>
 
-        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white/10 p-6 md:p-8">
+        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className={cn('rounded-[2rem] border p-6 md:p-8', sectionBorder)}>
           <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
             <div>
               <h2 className="max-w-3xl text-3xl font-semibold leading-tight md:text-5xl">A playful personal dossier with real astrology under the hood.</h2>
@@ -928,9 +932,9 @@ export default function App() {
         <div className="mt-8 grid gap-10">
           <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode}>
             <div className="grid gap-4 md:grid-cols-3">
-              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerKind={natal.sunSign === 'Aries' ? 'aries' : 'default'} label={natal.sunSign} />
-              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerKind={natal.nakshatra.name === 'Bharani' ? 'bharani' : 'default'} label={natal.nakshatra.name} />
-              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerKind={chineseAnimal === 'Dragon' ? 'dragon' : 'default'} label={natal.chineseZodiac} />
+              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerKind={natal.sunSign === 'Aries' ? 'aries' : 'default'} label={natal.sunSign} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerKind={natal.nakshatra.name === 'Bharani' ? 'bharani' : 'default'} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerKind={chineseAnimal === 'Dragon' ? 'dragon' : 'default'} label={natal.chineseZodiac} darkMode={state.ui.darkMode} />
             </div>
           </Section>
 
@@ -940,7 +944,7 @@ export default function App() {
                 <CardHeader><CardTitle>Deep personality read</CardTitle><CardDescription className={textMuted}>A longer portrait instead of just a sign label.</CardDescription></CardHeader>
                 <CardContent className="space-y-4">
                   <p className={cn('leading-8', textMuted)}>{interpretations.personality}</p>
-                  <ExpandableBlock title="Why this matters in daily life">
+                  <ExpandableBlock title="Why this matters in daily life" darkMode={state.ui.darkMode}>
                     The point of this reading is not just symbolic flair. It is to translate personality structure into lived experience: how the person reacts, how they decide, what kind of environment sharpens them, what kind of environment drains them, and what they are actually trying to become when they are not merely coping.
                   </ExpandableBlock>
                 </CardContent>
@@ -948,7 +952,7 @@ export default function App() {
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Action guidance</CardTitle><CardDescription className={textMuted}>The practical side of the portrait.</CardDescription></CardHeader>
                 <CardContent className="space-y-3">
-                  {interpretations.actionGuidance.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6">{item}</div>)}
+                  {interpretations.actionGuidance.map((item) => <div key={item} className={cn('rounded-2xl border p-4 text-sm leading-6', surfaceBase)}>{item}</div>)}
                 </CardContent>
               </Card>
             </div>
@@ -972,7 +976,7 @@ export default function App() {
                 {interpretations.shadowItems.map((item) => <Card key={item.title} className={cardBase}><CardContent className="p-5"><div className="text-lg font-semibold">{item.title}</div><p className={cn('mt-2 text-sm leading-7', textMuted)}>{item.body}</p></CardContent></Card>)}
               </div>
             </div>
-            <Card className={cn(cardBase, 'mt-6')}><CardHeader><CardTitle>Highest expression</CardTitle><CardDescription className={textMuted}>Where the chart can go when the person matures into it.</CardDescription></CardHeader><CardContent className="space-y-3">{interpretations.highestExpression.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6">{item}</div>)}</CardContent></Card>
+            <Card className={cn(cardBase, 'mt-6')}><CardHeader><CardTitle>Highest expression</CardTitle><CardDescription className={textMuted}>Where the chart can go when the person matures into it.</CardDescription></CardHeader><CardContent className="space-y-3">{interpretations.highestExpression.map((item) => <div key={item} className={cn('rounded-2xl border p-4 text-sm leading-6', surfaceBase)}>{item}</div>)}</CardContent></Card>
           </Section>
 
           <Section id="forecast" title={`${forecastYear} Forecast`} subtitle="Now using computed key dates rather than generic placeholders." darkMode={state.ui.darkMode}>
@@ -985,7 +989,7 @@ export default function App() {
                       <div className={textMuted}>{m.month}</div>
                       {['love', 'money', 'career', 'health', 'identity'].map((k) => {
                         const v = m[k];
-                        return <div key={k} className="rounded-xl px-2 py-2 text-center font-medium" style={{ background: `linear-gradient(90deg, rgba(244,114,182,.18), rgba(168,85,247,${v / 100}))` }}>{v}</div>;
+                        return <div key={k} className={cn('rounded-xl px-2 py-2 text-center font-medium', state.ui.darkMode ? '' : 'text-slate-800')} style={{ background: `linear-gradient(90deg, rgba(244,114,182,.18), rgba(168,85,247,${v / 100}))` }}>{v}</div>;
                       })}
                     </div>
                   ))}
@@ -1004,7 +1008,7 @@ export default function App() {
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Key dates to watch</CardTitle><CardDescription className={textMuted}>{`Computed from birthday timing plus strongest transit proximity in ${forecastYear}.`}</CardDescription></CardHeader>
                 <CardContent className="space-y-3">
-                  {interpretations.keyDates.map((item) => <div key={`${item.date}-${item.meaning}`} className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="font-medium">{item.date}</div><div className={cn('mt-1 text-sm', textMuted)}>{item.meaning}</div></div>)}
+                  {interpretations.keyDates.map((item) => <div key={`${item.date}-${item.meaning}`} className={cn('rounded-2xl border p-4', surfaceBase)}><div className="font-medium">{item.date}</div><div className={cn('mt-1 text-sm', textMuted)}>{item.meaning}</div></div>)}
                 </CardContent>
               </Card>
               <Card className={cardBase}>
@@ -1013,9 +1017,9 @@ export default function App() {
                   {[{ id: 'love', title: 'Love', icon: Heart }, { id: 'money', title: 'Money', icon: Coins }, { id: 'career', title: 'Career', icon: Briefcase }].map(({ id, title, icon: Icon }) => {
                     const active = state.ui.activeDomainTab[id] || 'now';
                     return (
-                      <div key={id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <div key={id} className={cn('rounded-2xl border p-4', surfaceBase)}>
                         <div className="mb-3 flex items-center gap-2 text-lg font-semibold"><Icon className="h-5 w-5" />{title}</div>
-                        <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl bg-white/5 p-1">
+                        <div className={cn('mb-3 grid grid-cols-3 gap-2 rounded-2xl p-1', surfaceSoft)}>
                           {['now', 'year', 'shadow'].map((tab) => (
                             <button key={tab} onClick={() => setTab(id, tab)} className={cn('rounded-2xl px-3 py-2 text-sm transition', active === tab ? 'bg-fuchsia-500/30 text-white ring-1 ring-fuchsia-300/50' : (state.ui.darkMode ? 'bg-white/5 text-white/80 hover:bg-white/10' : 'bg-slate-900/5 text-slate-700 hover:bg-slate-900/10'))}>
                               {tab === 'year' ? 'Year' : tab[0].toUpperCase() + tab.slice(1)}
@@ -1033,8 +1037,8 @@ export default function App() {
 
           <Section id="transits" title="Current Transits" subtitle="The live astronomy layer feeding the present-tense reading." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-              <Card className={cardBase}><CardHeader><CardTitle>Orb meters</CardTitle><CardDescription className={textMuted}>Current transit pressure against natal points.</CardDescription></CardHeader><CardContent className="space-y-4">{liveData.orbMeters.map((m) => <div key={m.name} className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between gap-3"><div className="font-medium">{m.name}</div><div className={cn('text-sm', state.ui.darkMode ? 'text-white/70' : 'text-slate-600')}>{m.value}%</div></div><div className="mt-3"><ProgressBar value={m.value} /></div><p className={cn('mt-3 text-sm', textMuted)}>{m.note}</p></div>)}</CardContent></Card>
-              <Card className={cardBase}><CardHeader><CardTitle>Current planets</CardTitle><CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription></CardHeader><CardContent className="space-y-3">{liveData.planets.map((planet) => <div key={planet.body} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-lg">{zodiacGlyph(planet.sign)}</div><div><div className="font-medium">{planet.body}</div><div className={cn('text-sm', textMuted)}>{planet.formatted}</div></div></div><div className="text-right text-sm">{planet.retrograde && <div className="text-amber-300">Rx</div>}{planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}</div></div>)}</CardContent></Card>
+              <Card className={cardBase}><CardHeader><CardTitle>Orb meters</CardTitle><CardDescription className={textMuted}>Current transit pressure against natal points.</CardDescription></CardHeader><CardContent className="space-y-4">{liveData.orbMeters.map((m) => <div key={m.name} className={cn('rounded-2xl border p-4', surfaceBase)}><div className="flex items-center justify-between gap-3"><div className="font-medium">{m.name}</div><div className={cn('text-sm', state.ui.darkMode ? 'text-white/70' : 'text-slate-600')}>{m.value}%</div></div><div className="mt-3"><ProgressBar value={m.value} /></div><p className={cn('mt-3 text-sm', textMuted)}>{m.note}</p></div>)}</CardContent></Card>
+              <Card className={cardBase}><CardHeader><CardTitle>Current planets</CardTitle><CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription></CardHeader><CardContent className="space-y-3">{liveData.planets.map((planet) => <div key={planet.body} className={cn('flex items-center justify-between rounded-2xl border p-3', surfaceBase)}><div className="flex items-center gap-3"><div className={cn('flex h-10 w-10 items-center justify-center rounded-full border text-lg', state.ui.darkMode ? 'border-white/10 bg-white/10' : 'border-slate-200 bg-slate-100', accentText)}>{zodiacGlyph(planet.sign)}</div><div><div className="font-medium">{planet.body}</div><div className={cn('text-sm', textMuted)}>{planet.formatted}</div></div></div><div className="text-right text-sm">{planet.retrograde && <div className="text-amber-300">Rx</div>}{planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}</div></div>)}</CardContent></Card>
             </div>
           </Section>
         </div>
