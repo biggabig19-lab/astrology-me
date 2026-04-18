@@ -46,10 +46,11 @@ import {
 } from 'lucide-react';
 
 const APP_NAME = 'Astrology Me';
-const STORAGE_KEY = 'astrology-me-v5';
+const STORAGE_KEY = 'astrology-me-v4';
 
 const BODIES = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
 const ZODIAC = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+
 const NAKSHATRAS = [
   'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha',
   'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
@@ -67,6 +68,67 @@ const BODY_GLYPHS = {
   Uranus: '♅',
   Neptune: '♆',
   Pluto: '♇',
+};
+
+const SIGN_MASCOTS = {
+  Aries: '🐏',
+  Taurus: '🐂',
+  Gemini: '🦋',
+  Cancer: '🦀',
+  Leo: '🦁',
+  Virgo: '🌾',
+  Libra: '🕊️',
+  Scorpio: '🦂',
+  Sagittarius: '🏹',
+  Capricorn: '🐐',
+  Aquarius: '🫧',
+  Pisces: '🐟',
+};
+
+const NAKSHATRA_MASCOTS = {
+  Ashwini: '🐎',
+  Bharani: '🐘',
+  Krittika: '🔥',
+  Rohini: '🌹',
+  Mrigashira: '🦌',
+  Ardra: '🌧️',
+  Punarvasu: '🏹',
+  Pushya: '🌼',
+  Ashlesha: '🐍',
+  Magha: '👑',
+  PurvaPhalguni: '🎀',
+  'Purva Phalguni': '🎀',
+  'Uttara Phalguni': '🌞',
+  Hasta: '🖐️',
+  Chitra: '💎',
+  Swati: '🍃',
+  Vishakha: '⚡',
+  Anuradha: '🌺',
+  Jyeshtha: '🛡️',
+  Mula: '🌱',
+  'Purva Ashadha': '💧',
+  'Uttara Ashadha': '🏔️',
+  Shravana: '👂',
+  Dhanishta: '🥁',
+  Shatabhisha: '🌌',
+  'Purva Bhadrapada': '🔥',
+  'Uttara Bhadrapada': '🌊',
+  Revati: '✨',
+};
+
+const CHINESE_MASCOTS = {
+  Rat: '🐀',
+  Ox: '🐂',
+  Tiger: '🐅',
+  Rabbit: '🐇',
+  Dragon: '🐉',
+  Snake: '🐍',
+  Horse: '🐎',
+  Goat: '🐐',
+  Monkey: '🐒',
+  Rooster: '🐓',
+  Dog: '🐕',
+  Pig: '🐖',
 };
 
 const defaultState = {
@@ -251,7 +313,10 @@ function birthDateTimeFromProfile(profile) {
   if (!profile?.birthDate || !profile?.birthTime || !profile?.timezone) return null;
   const [year, month, day] = profile.birthDate.split('-').map(Number);
   const [hour, minute] = profile.birthTime.split(':').map(Number);
-  const dt = DateTime.fromObject({ year, month, day, hour, minute }, { zone: profile.timezone });
+  const dt = DateTime.fromObject(
+    { year, month, day, hour, minute },
+    { zone: profile.timezone }
+  );
   if (!dt.isValid) return null;
   return dt;
 }
@@ -352,7 +417,7 @@ function getNakshatraDepth(name) {
 }
 
 function getChineseDepth(zodiac) {
-  const animal = zodiac.split(' ').pop();
+  const animal = getChineseAnimal(zodiac);
   const text = {
     Dragon: 'Dragon energy adds presence, force, charisma, and a sense that life should be lived at consequential scale. It often creates natural command, strong self-definition, and a refusal to think small.',
     Rabbit: 'Rabbit energy adds refinement, sensitivity, diplomacy, and a subtle way of shaping environments.',
@@ -370,24 +435,6 @@ function getChineseDepth(zodiac) {
   return text[animal] || `${zodiac} adds a broader symbolic layer around temperament, style of power, and social expression.`;
 }
 
-function findBestTransitDate(year, transitBody, natalBody, natalLongitude) {
-  let best = null;
-  for (let month = 1; month <= 12; month++) {
-    const days = DateTime.utc(year, month).daysInMonth;
-    for (let day = 1; day <= days; day++) {
-      const date = new Date(Date.UTC(year, month - 1, day, 12, 0));
-      const transitLon = geocentricLongitude(transitBody, date);
-      const diff = angularDistance(transitLon, natalLongitude);
-      const aspect = aspectLabel(diff);
-      const score = aspect ? aspect.delta : diff + 10;
-      if (!best || score < best.score) {
-        best = { date, transitBody, natalBody, diff, aspect, score };
-      }
-    }
-  }
-  return best;
-}
-
 function generateInterpretations(profile, natal, liveData) {
   if (!profile || !natal) return null;
 
@@ -395,6 +442,7 @@ function generateInterpretations(profile, natal, liveData) {
   const moon = natal.placementMap.Moon;
   const mercury = natal.placementMap.Mercury;
   const topTransit = liveData?.strongest?.[0];
+  const chineseAnimal = getChineseAnimal(natal.chineseZodiac);
 
   const personalityIntro = `${getLongPersonality(sun.sign)} ${getMoonDepth(moon.sign)} ${getNakshatraDepth(natal.nakshatra.name)} ${getChineseDepth(natal.chineseZodiac)}`;
 
@@ -473,22 +521,12 @@ function generateInterpretations(profile, natal, liveData) {
     },
   };
 
-  const forecastYear = 2026;
-  const saturnSun = findBestTransitDate(forecastYear, 'Saturn', 'Sun', natal.placementMap.Sun.longitude);
-  const neptuneSun = findBestTransitDate(forecastYear, 'Neptune', 'Sun', natal.placementMap.Sun.longitude);
-  const jupiterMoon = findBestTransitDate(forecastYear, 'Jupiter', 'Moon', natal.placementMap.Moon.longitude);
-  const marsMercury = findBestTransitDate(forecastYear, 'Mars', 'Mercury', natal.placementMap.Mercury.longitude);
-
-  const birthday = natal.localBirth.set({ year: forecastYear });
-  const birthdayPlusWeek = birthday.plus({ days: 8 });
-
   const keyDates = [
-    { date: birthday.toFormat('MMM d'), meaning: 'Birthday / solar reset — a personal turning point that tends to reveal what identity is becoming.' },
-    { date: birthdayPlusWeek.toFormat('MMM d'), meaning: 'Post-birthday ignition window — themes started near the birthday often become more visible and active.' },
-    { date: DateTime.fromJSDate(saturnSun.date).toFormat('MMM d'), meaning: 'Saturn closest to natal Sun — structure, limits, responsibility, and maturity come to the forefront.' },
-    { date: DateTime.fromJSDate(neptuneSun.date).toFormat('MMM d'), meaning: 'Neptune strongest on natal Sun themes — heightened intuition, but also a need to verify what is real.' },
-    { date: DateTime.fromJSDate(jupiterMoon.date).toFormat('MMM d'), meaning: 'Jupiter strongest on the Moon — emotional expansion, broader perspective, and opportunities through inner honesty.' },
-    { date: DateTime.fromJSDate(marsMercury.date).toFormat('MMM d'), meaning: 'Mars strongest on Mercury — sharp speech, decisive thought, and the need to avoid overreactive communication.' },
+    { date: 'Birthday window', meaning: 'Personal reset and a check on what identity is becoming.' },
+    { date: 'Saturn pressure periods', meaning: 'Reality-testing around structure, pacing, obligations, and self-definition.' },
+    { date: 'Neptune activation periods', meaning: 'Inspiration rises, but so does the need to verify what is real.' },
+    { date: 'Strong Mars / Mercury periods', meaning: 'Communication sharpens. Watch impulsive speech and overreaction.' },
+    { date: 'Jupiter / Moon openings', meaning: 'Expansion through emotional honesty, perspective, and better inner regulation.' },
   ];
 
   return {
@@ -500,59 +538,112 @@ function generateInterpretations(profile, natal, liveData) {
     highestExpression,
     domains: domainReads,
     sourcedNote: 'This version is local-first. It does not scrape horoscope sites directly in the browser. A future backend/API layer can add sourced long-form interpretations and citations.',
-    transitSummary: topTransit ? `${topTransit.planet} is currently forming a ${topTransit.aspect.toLowerCase()} to natal ${topTransit.natal} with an orb of ${topTransit.orb}°. This is the loudest live signal in the chart right now.` : 'Current transits are relatively moderate, so the focus is on steady movement and follow-through.',
+    transitSummary: topTransit
+      ? `${topTransit.planet} is currently forming a ${topTransit.aspect.toLowerCase()} to natal ${topTransit.natal} with an orb of ${topTransit.orb}°. This is the loudest live signal in the chart right now.`
+      : 'Current transits are relatively moderate, so the focus is on steady movement and follow-through.',
     keyDates,
     identityForecast: `The near-term developmental pressure is about becoming more structurally honest. Whatever is built on habit, drift, fantasy, or avoidance gets challenged. Whatever is aligned, real, and consciously chosen gets stronger.`,
   };
 }
 
-function ExpandableBlock({ title, children }) {
-  const [open, setOpen] = useState(false);
+function usePersistedState() {
+  const [state, setState] = useState(defaultState);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setState({ ...defaultState, ...JSON.parse(raw) });
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {}
+  }, [state]);
+  return [state, setState];
+}
+
+function Card({ className = '', children }) {
+  return <div className={className}>{children}</div>;
+}
+function CardHeader({ className = '', children }) {
+  return <div className={cn('p-5 pb-3', className)}>{children}</div>;
+}
+function CardTitle({ className = '', children }) {
+  return <h3 className={cn('text-lg font-semibold', className)}>{children}</h3>;
+}
+function CardDescription({ className = '', children }) {
+  return <p className={cn('mt-1 text-sm', className)}>{children}</p>;
+}
+function CardContent({ className = '', children }) {
+  return <div className={cn('p-5 pt-0', className)}>{children}</div>;
+}
+function Toggle({ checked, onChange }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="font-medium">{title}</div>
-        <button onClick={() => setOpen(!open)} className="rounded-xl bg-white/10 px-3 py-1 text-sm hover:bg-white/15">
-          {open ? 'Show less' : 'Show more'}
-        </button>
+    <button type="button" onClick={() => onChange(!checked)} className={cn('relative inline-flex h-7 w-12 items-center rounded-full transition', checked ? 'bg-fuchsia-500' : 'bg-white/15')}>
+      <span className={cn('inline-block h-5 w-5 transform rounded-full bg-white transition', checked ? 'translate-x-6' : 'translate-x-1')} />
+    </button>
+  );
+}
+function ProgressBar({ value }) {
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="h-full rounded-full bg-gradient-to-r from-pink-400 via-fuchsia-400 to-violet-400" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+    </div>
+  );
+}
+function BadgePill({ children, className = '' }) {
+  return <span className={cn('inline-flex rounded-full px-3 py-1 text-xs font-medium', className)}>{children}</span>;
+}
+function Input(props) {
+  return <input {...props} className={cn('w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 outline-none', props.className || '')} />;
+}
+function Section({ id, title, subtitle, darkMode, children }) {
+  return (
+    <section id={id} className="scroll-mt-24">
+      <div className="mb-4">
+        <h2 className={cn('text-2xl font-semibold tracking-tight md:text-3xl', darkMode ? 'text-white' : 'text-slate-900')}>{title}</h2>
+        {subtitle ? <p className={cn('mt-1 text-sm md:text-base', darkMode ? 'text-white/70' : 'text-slate-600')}>{subtitle}</p> : null}
       </div>
-      {open ? <div className="mt-3 text-sm leading-7 text-white/75">{children}</div> : null}
+      {children}
+    </section>
+  );
+}
+function TinyStat({ label, value, icon: Icon, darkMode }) {
+  return (
+    <div className={cn('rounded-2xl border p-4 backdrop-blur-sm', darkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white/80')}>
+      <div className={cn('flex items-center gap-2', darkMode ? 'text-white/70' : 'text-slate-600')}>
+        <Icon className="h-4 w-4" />
+        <span className="text-xs uppercase tracking-[0.2em]">{label}</span>
+      </div>
+      <div className={cn('mt-2 text-xl font-semibold', darkMode ? 'text-white' : 'text-slate-900')}>{value}</div>
     </div>
   );
 }
 
-function Sticker({ kind, label }) {
-  const common = 'h-24 w-24 rounded-[2rem] border border-white/20 bg-white/10 backdrop-blur-sm shadow-xl flex items-center justify-center';
-  if (kind === 'aries') {
-    return <div className={common}><div className="text-5xl">🐏</div><div className="sr-only">{label}</div></div>;
-  }
-  if (kind === 'bharani') {
-    return <div className={common}><div className="text-5xl">🐘</div><div className="sr-only">{label}</div></div>;
-  }
-  if (kind === 'dragon') {
-    return <div className={common}><div className="text-5xl">🐉</div><div className="sr-only">{label}</div></div>;
-  }
-  return <div className={common}><div className="text-4xl">✨</div><div className="sr-only">{label}</div></div>;
-}
-
-function IdentityCard({ title, subtitle, stickerKind, label }) {
+function IdentityCreatureCard({ title, subtitle, mascot, className }) {
   return (
-    <Card className="rounded-[2rem] border border-white/10 bg-white/5 text-white backdrop-blur-md">
-      <CardContent className="p-5">
-        <div className="flex items-center gap-4">
-          <Sticker kind={stickerKind} label={label} />
-          <div>
-            <div className="text-lg font-semibold">{title}</div>
-            <div className="mt-1 text-sm text-white/70">{subtitle}</div>
-          </div>
+    <div className={cn('rounded-[2rem] border p-5 backdrop-blur-md', className)}>
+      <div className="flex items-center gap-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/15 text-4xl shadow-lg">
+          {mascot}
         </div>
-      </CardContent>
-    </Card>
+        <div>
+          <div className="text-lg font-semibold">{title}</div>
+          <div className="mt-1 text-sm opacity-80">{subtitle}</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
 function Landing({ onSubmit }) {
-  const [form, setForm] = useState({ name: '', birthDate: '', birthTime: '', location: '' });
+  const [form, setForm] = useState({
+    name: '',
+    birthDate: '',
+    birthTime: '',
+    location: '',
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -561,7 +652,9 @@ function Landing({ onSubmit }) {
 
   const update = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
-    if (key === 'location') setSelectedLocation(null);
+    if (key === 'location') {
+      setSelectedLocation(null);
+    }
   };
 
   useEffect(() => {
@@ -571,6 +664,7 @@ function Landing({ onSubmit }) {
       setSuggestionsOpen(false);
       return;
     }
+
     const timer = setTimeout(async () => {
       try {
         const results = await searchLocations(query);
@@ -581,6 +675,7 @@ function Landing({ onSubmit }) {
         setSuggestionsOpen(false);
       }
     }, 250);
+
     return () => clearTimeout(timer);
   }, [form.location]);
 
@@ -595,9 +690,14 @@ function Landing({ onSubmit }) {
   const handleSubmit = async () => {
     setError('');
     setLoading(true);
+
     try {
       let resolved = selectedLocation;
-      if (!resolved) resolved = await resolveLocation(form.location);
+
+      if (!resolved) {
+        resolved = await resolveLocation(form.location);
+      }
+
       onSubmit({
         ...form,
         location: resolved.label,
@@ -621,35 +721,59 @@ function Landing({ onSubmit }) {
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
           <BadgePill className="bg-fuchsia-500/20 text-fuchsia-200">{APP_NAME}</BadgePill>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">Enter a birth profile and generate a detailed, playful personal astrology portrait.</h1>
+          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">
+            Enter a birth profile and generate a playful, detailed personal astrology portrait.
+          </h1>
+          <p className="mt-4 max-w-2xl text-white/70 md:text-lg">
+            Birth time and location are required in this version so the app can resolve the local birth moment correctly for international users.
+          </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.05fr_.95fr]">
           <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
             <CardHeader>
               <CardTitle>Start your chart</CardTitle>
-              <CardDescription className="text-white/70">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
+              <CardDescription className="text-white/70">
+                This version resolves timezone from the entered location before calculating the chart.
+              </CardDescription>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm text-white/80">Name or nickname</label>
                 <Input placeholder="Nate" value={form.name} onChange={(e) => update('name', e.target.value)} />
               </div>
+
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth date</label>
                 <Input type="date" value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} />
               </div>
+
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth time</label>
                 <Input type="time" value={form.birthTime} onChange={(e) => update('birthTime', e.target.value)} />
               </div>
+
               <div className="relative">
                 <label className="mb-2 block text-sm text-white/80">Birth location</label>
-                <Input placeholder="Mumbai, India" value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
+                <Input
+                  placeholder="Mumbai, India"
+                  value={form.location}
+                  onChange={(e) => update('location', e.target.value)}
+                  onFocus={() => {
+                    if (suggestions.length) setSuggestionsOpen(true);
+                  }}
+                />
+
                 {suggestionsOpen && suggestions.length > 0 && (
                   <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
                     {suggestions.map((place, idx) => (
-                      <button key={`${place.label}-${idx}`} type="button" onClick={() => chooseSuggestion(place)} className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0">
+                      <button
+                        key={`${place.label}-${idx}`}
+                        type="button"
+                        onClick={() => chooseSuggestion(place)}
+                        className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0"
+                      >
                         <div className="font-medium">{place.label}</div>
                         <div className="mt-1 text-xs text-white/50">{place.timezone}</div>
                       </button>
@@ -657,22 +781,65 @@ function Landing({ onSubmit }) {
                   </div>
                 )}
               </div>
+
               {selectedLocation && (
                 <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
                   Using: <strong>{selectedLocation.label}</strong>
-                  <div className="mt-1 text-xs text-emerald-200/80">Timezone: {selectedLocation.timezone}</div>
+                  <div className="mt-1 text-xs text-emerald-200/80">
+                    Timezone: {selectedLocation.timezone}
+                  </div>
                 </div>
               )}
-              {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
-              <button onClick={handleSubmit} disabled={disabled || loading} className="w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500 px-4 py-3 font-medium text-white disabled:opacity-50">
+
+              {error ? (
+                <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">
+                  {error}
+                </div>
+              ) : null}
+
+              <button
+                onClick={handleSubmit}
+                disabled={disabled || loading}
+                className="w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500 px-4 py-3 font-medium text-white disabled:opacity-50"
+              >
                 {loading ? 'Resolving location...' : 'Generate dashboard'}
               </button>
             </CardContent>
           </Card>
 
           <div className="grid gap-4">
-            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md"><CardContent className="p-5"><div className="flex items-center gap-3 text-lg font-semibold"><Globe className="h-5 w-5 text-cyan-300" /> International-ready input</div><p className="mt-2 text-sm leading-6 text-white/70">Location suggestions appear while typing, and the chosen place is used to resolve timezone before chart calculation.</p></CardContent></Card>
-            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md"><CardContent className="p-5"><div className="flex items-center gap-3 text-lg font-semibold"><Stars className="h-5 w-5 text-violet-300" /> More visual delight</div><p className="mt-2 text-sm leading-6 text-white/70">This version introduces cute sticker-style identity icons and richer presentation layers.</p></CardContent></Card>
+            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 text-lg font-semibold">
+                  <Globe className="h-5 w-5 text-cyan-300" /> International-ready input
+                </div>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  The entered birth time is treated as local time for the entered place, then converted using that place’s timezone.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 text-lg font-semibold">
+                  <Stars className="h-5 w-5 text-violet-300" /> Cute symbolic layer
+                </div>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  Western, Vedic, and Chinese layers each get their own mascot, badge, and narrative personality feel.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 text-lg font-semibold">
+                  <ScrollText className="h-5 w-5 text-fuchsia-300" /> More value, more detail
+                </div>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  This version is built to feel more like a personal dossier than a simple astrology widget.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -714,12 +881,14 @@ export default function App() {
     const natalMap = Object.fromEntries(natal.placements.map((p) => [p.body, p.longitude]));
 
     const transits = planets
-      .flatMap((planet) => Object.entries(natalMap).map(([natalBody, natalLon]) => {
-        const diff = angularDistance(planet.longitude, natalLon);
-        const aspect = aspectLabel(diff);
-        if (!aspect) return null;
-        return { planet: planet.body, natal: natalBody, aspect: aspect.name, orb: Number(aspect.delta.toFixed(2)) };
-      }))
+      .flatMap((planet) =>
+        Object.entries(natalMap).map(([natalBody, natalLon]) => {
+          const diff = angularDistance(planet.longitude, natalLon);
+          const aspect = aspectLabel(diff);
+          if (!aspect) return null;
+          return { planet: planet.body, natal: natalBody, aspect: aspect.name, orb: Number(aspect.delta.toFixed(2)) };
+        })
+      )
       .filter(Boolean)
       .sort((a, b) => a.orb - b.orb);
 
@@ -774,12 +943,21 @@ export default function App() {
   const textMuted = state.ui.darkMode ? 'text-white/70' : 'text-slate-600';
   const setTab = (group, value) => setState((s) => ({ ...s, ui: { ...s.ui, activeDomainTab: { ...s.ui.activeDomainTab, [group]: value } } }));
 
-  if (!state.profile) return <Landing onSubmit={(profile) => setState((s) => ({ ...s, profile }))} />;
+  if (!state.profile) {
+    return <Landing onSubmit={(profile) => setState((s) => ({ ...s, profile }))} />;
+  }
 
   const chineseAnimal = getChineseAnimal(natal.chineseZodiac);
+  const chineseMascot = CHINESE_MASCOTS[chineseAnimal] || '🐉';
+  const signMascot = SIGN_MASCOTS[natal.sunSign] || '✨';
+  const nakshatraMascot = NAKSHATRA_MASCOTS[natal.nakshatra.name] || '🌙';
 
   return (
     <div className={cn('min-h-screen transition-colors duration-300', themeShell)}>
+      <style>{`
+        html { scroll-behavior: smooth; }
+      `}</style>
+
       <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
@@ -800,12 +978,13 @@ export default function App() {
         <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white/10 p-6 md:p-8">
           <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
             <div>
-              <h2 className="max-w-3xl text-3xl font-semibold leading-tight md:text-5xl">A playful personal dossier with real astrology under the hood.</h2>
+              <h2 className="max-w-3xl text-3xl font-semibold leading-tight md:text-5xl">A personal astrology portrait with more personality, more delight, and more depth.</h2>
               <p className={cn('mt-4 max-w-2xl text-base md:text-lg', textMuted)}>{interpretations.overview}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <BadgePill className="bg-rose-500/20 text-rose-200">{natal.sunSign} Sun</BadgePill>
                 <BadgePill className="bg-violet-500/20 text-violet-200">{natal.nakshatra.name}</BadgePill>
                 <BadgePill className="bg-amber-500/20 text-amber-100">{natal.chineseZodiac}</BadgePill>
+                <BadgePill className="bg-cyan-500/20 text-cyan-100">{natal.dominantElement} dominant</BadgePill>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -818,59 +997,183 @@ export default function App() {
         </motion.section>
 
         <div className="mt-8 grid gap-10">
-          <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode}>
+          <Section id="identity" title="Identity Trio" subtitle="The three symbolic systems that shape the top-level portrait." darkMode={state.ui.darkMode}>
             <div className="grid gap-4 md:grid-cols-3">
-              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerKind={natal.sunSign === 'Aries' ? 'aries' : 'default'} label={natal.sunSign} />
-              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerKind={natal.nakshatra.name === 'Bharani' ? 'bharani' : 'default'} label={natal.nakshatra.name} />
-              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerKind={chineseAnimal === 'Dragon' ? 'dragon' : 'default'} label={natal.chineseZodiac} />
+              <IdentityCreatureCard
+                title={`${natal.sunSign} Sun`}
+                subtitle="Western astrology"
+                mascot={signMascot}
+                className="border-rose-300/20 bg-rose-500/10"
+              />
+              <IdentityCreatureCard
+                title={`${natal.nakshatra.name}`}
+                subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`}
+                mascot={nakshatraMascot}
+                className="border-violet-300/20 bg-violet-500/10"
+              />
+              <IdentityCreatureCard
+                title={natal.chineseZodiac}
+                subtitle="Chinese zodiac"
+                mascot={chineseMascot}
+                className="border-emerald-300/20 bg-emerald-500/10"
+              />
             </div>
           </Section>
 
-          <Section id="overview" title="Overview" subtitle="The app should feel like the user learned something real about themselves." darkMode={state.ui.darkMode}>
+          <Section id="overview" title="Overview" subtitle="A high-signal reading of how this person works." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}>
-                <CardHeader><CardTitle>Deep personality read</CardTitle><CardDescription className={textMuted}>A longer portrait instead of just a sign label.</CardDescription></CardHeader>
-                <CardContent className="space-y-4">
+                <CardHeader>
+                  <CardTitle>Deep personality read</CardTitle>
+                  <CardDescription className={textMuted}>This section is meant to feel like a real psychological portrait, not just a label list.</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <p className={cn('leading-8', textMuted)}>{interpretations.personality}</p>
-                  <ExpandableBlock title="Why this matters in daily life">
-                    The point of this reading is not just symbolic flair. It is to translate personality structure into lived experience: how the person reacts, how they decide, what kind of environment sharpens them, what kind of environment drains them, and what they are actually trying to become when they are not merely coping.
-                  </ExpandableBlock>
                 </CardContent>
               </Card>
+
               <Card className={cardBase}>
-                <CardHeader><CardTitle>Action guidance</CardTitle><CardDescription className={textMuted}>The practical side of the portrait.</CardDescription></CardHeader>
+                <CardHeader>
+                  <CardTitle>Action guidance</CardTitle>
+                  <CardDescription className={textMuted}>What to lean into when operating at your highest level.</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-3">
-                  {interpretations.actionGuidance.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6">{item}</div>)}
+                  {interpretations.actionGuidance.map((item) => (
+                    <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6">
+                      {item}
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </div>
           </Section>
 
-          <Section id="convergence" title="Where All Three Converge" subtitle="This is usually where the user recognizes themselves most strongly." darkMode={state.ui.darkMode}>
+          <Section id="natal" title="Natal Snapshot" subtitle="The core placements anchoring the interpretation." darkMode={state.ui.darkMode}>
+            <div className="grid gap-6 lg:grid-cols-[1.05fr_.95fr]">
+              <Card className={cardBase}>
+                <CardHeader>
+                  <CardTitle>Symbol wheel</CardTitle>
+                  <CardDescription className={textMuted}>A simplified mobile-first chart mandala.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative mx-auto aspect-square max-w-md rounded-full border border-white/10 bg-[radial-gradient(circle_at_center,rgba(255,255,255,.10),transparent_55%)] p-6">
+                    <div className="absolute inset-6 rounded-full border border-dashed border-white/15" />
+                    <div className="absolute inset-14 rounded-full border border-white/10" />
+                    <div className="absolute inset-24 rounded-full border border-dashed border-white/10" />
+                    <div className="absolute inset-1/2 h-px w-[82%] -translate-x-1/2 -translate-y-1/2 bg-white/15" />
+                    <div className="absolute left-1/2 top-[9%] h-[82%] w-px -translate-x-1/2 bg-white/15" />
+                    {natal.placements.map((p, idx) => {
+                      const angle = (p.longitude - 90) * (Math.PI / 180);
+                      const radius = 34;
+                      const left = 50 + Math.cos(angle) * radius;
+                      const top = 50 + Math.sin(angle) * radius;
+                      return (
+                        <div
+                          key={p.body}
+                          className="absolute flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/10 text-xl backdrop-blur-sm"
+                          style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+                        >
+                          {BODY_GLYPHS[p.body] || idx}
+                        </div>
+                      );
+                    })}
+                    <div className="absolute inset-1/2 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-fuchsia-300/40 bg-fuchsia-500/20 text-center text-sm font-medium shadow-2xl shadow-fuchsia-500/20">
+                      {natal.sunSign}
+                      <br />
+                      {natal.nakshatra.name}
+                      <br />
+                      {chineseAnimal}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-4">
+                {natal.placements.map((p) => (
+                  <Card key={p.body} className={cardBase}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-lg font-semibold">{p.body} <span className={cn('font-normal', textMuted)}>in {p.sign}</span></div>
+                          <p className={cn('mt-1 text-sm', textMuted)}>{p.formatted}</p>
+                        </div>
+                        <BadgePill className="bg-white/10 text-white">{p.degree}°</BadgePill>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </Section>
+
+          <Section id="convergence" title="Where All Three Converge" subtitle="The real personality tends to show up where the systems overlap." darkMode={state.ui.darkMode}>
             <div className="grid gap-4">
               {interpretations.convergence.map((item) => (
-                <Card key={item.title} className={cardBase}><CardContent className="p-5"><div className="flex items-center gap-2 text-lg font-semibold"><Gem className="h-5 w-5 text-fuchsia-300" />{item.title}</div><p className={cn('mt-3 text-sm leading-7', textMuted)}>{item.body}</p></CardContent></Card>
+                <Card key={item.title} className={cardBase}>
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <Gem className="h-5 w-5 text-fuchsia-300" />
+                      {item.title}
+                    </div>
+                    <p className={cn('mt-3 text-sm leading-7', textMuted)}>{item.body}</p>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </Section>
 
-          <Section id="shadow" title="Shadow Analysis" subtitle="Protective patterns, not moral failure." darkMode={state.ui.darkMode}>
+          <Section id="shadow" title="Shadow Analysis" subtitle="Not punishment — just the protective patterns that can run the life when unconscious." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}>
-                <CardHeader><CardTitle>Shadow activation radar</CardTitle><CardDescription className={textMuted}>Weighted by live transit pressure.</CardDescription></CardHeader>
-                <CardContent className="h-[320px] w-full"><ResponsiveContainer width="100%" height="100%"><RadarChart data={liveData.shadowRadar} outerRadius="72%"><PolarGrid /><PolarAngleAxis dataKey="trait" tick={{ fill: state.ui.darkMode ? '#f5e9ff' : '#334155', fontSize: 12 }} /><PolarRadiusAxis tick={false} axisLine={false} /><Radar dataKey="value" fillOpacity={0.45} strokeWidth={2} /></RadarChart></ResponsiveContainer></CardContent>
+                <CardHeader>
+                  <CardTitle>Shadow activation radar</CardTitle>
+                  <CardDescription className={textMuted}>Weighted by current transit pressure.</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[320px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={liveData.shadowRadar} outerRadius="72%">
+                      <PolarGrid />
+                      <PolarAngleAxis dataKey="trait" tick={{ fill: state.ui.darkMode ? '#f5e9ff' : '#334155', fontSize: 12 }} />
+                      <PolarRadiusAxis tick={false} axisLine={false} />
+                      <Radar dataKey="value" fillOpacity={0.45} strokeWidth={2} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </CardContent>
               </Card>
               <div className="space-y-4">
-                {interpretations.shadowItems.map((item) => <Card key={item.title} className={cardBase}><CardContent className="p-5"><div className="text-lg font-semibold">{item.title}</div><p className={cn('mt-2 text-sm leading-7', textMuted)}>{item.body}</p></CardContent></Card>)}
+                {interpretations.shadowItems.map((item) => (
+                  <Card key={item.title} className={cardBase}>
+                    <CardContent className="p-5">
+                      <div className="text-lg font-semibold">{item.title}</div>
+                      <p className={cn('mt-2 text-sm leading-7', textMuted)}>{item.body}</p>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
-            <Card className={cn(cardBase, 'mt-6')}><CardHeader><CardTitle>Highest expression</CardTitle><CardDescription className={textMuted}>Where the chart can go when the person matures into it.</CardDescription></CardHeader><CardContent className="space-y-3">{interpretations.highestExpression.map((item) => <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6">{item}</div>)}</CardContent></Card>
+
+            <Card className={cn(cardBase, 'mt-6')}>
+              <CardHeader>
+                <CardTitle>Highest expression</CardTitle>
+                <CardDescription className={textMuted}>What this chart can become when strength is integrated rather than just defended.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {interpretations.highestExpression.map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6">
+                    {item}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </Section>
 
-          <Section id="forecast" title="2026 Forecast" subtitle="Now using computed key dates rather than generic placeholders." darkMode={state.ui.darkMode}>
+          <Section id="forecast" title="Current + Near Future" subtitle="What the transits are pressing on right now, and what that means." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
               <Card className={cardBase}>
-                <CardHeader><CardTitle>Year contour</CardTitle><CardDescription className={textMuted}>A mobile-friendly heatmap of domain intensity.</CardDescription></CardHeader>
+                <CardHeader>
+                  <CardTitle>Year contour</CardTitle>
+                  <CardDescription className={textMuted}>A mobile-friendly forecast heatmap driven by live transit pressure.</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-3">
                   {liveData.yearHeat.map((m) => (
                     <div key={m.month} className="grid grid-cols-[42px_repeat(5,1fr)] items-center gap-2 text-xs md:text-sm">
@@ -881,40 +1184,89 @@ export default function App() {
                       })}
                     </div>
                   ))}
-                  <div className={cn('grid grid-cols-[42px_repeat(5,1fr)] gap-2 text-[11px] uppercase tracking-[0.18em]', textMuted)}><div></div><div>Love</div><div>Money</div><div>Career</div><div>Health</div><div>Identity</div></div>
+                  <div className={cn('grid grid-cols-[42px_repeat(5,1fr)] gap-2 text-[11px] uppercase tracking-[0.18em]', textMuted)}>
+                    <div></div><div>Love</div><div>Money</div><div>Career</div><div>Health</div><div>Identity</div>
+                  </div>
                 </CardContent>
               </Card>
+
               <div className="space-y-4">
-                <Card className={cardBase}><CardContent className="p-5"><div className="flex items-center gap-2 text-lg font-semibold"><CalendarDays className="h-5 w-5" /> Main developmental theme</div><p className={cn('mt-2 text-sm leading-7', textMuted)}>{interpretations.identityForecast}</p></CardContent></Card>
-                <Card className={cardBase}><CardContent className="p-5"><div className="flex items-center gap-2 text-lg font-semibold"><ShieldAlert className="h-5 w-5" /> Dominant live transit</div><p className={cn('mt-2 text-sm leading-7', textMuted)}>{interpretations.transitSummary}</p></CardContent></Card>
+                <Card className={cardBase}>
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 text-lg font-semibold"><CalendarDays className="h-5 w-5" /> Live dominant aspect</div>
+                    <p className={cn('mt-2 text-sm leading-7', textMuted)}>{interpretations.transitSummary}</p>
+                  </CardContent>
+                </Card>
+                <Card className={cardBase}>
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 text-lg font-semibold"><ShieldAlert className="h-5 w-5" /> Main developmental theme</div>
+                    <p className={cn('mt-2 text-sm leading-7', textMuted)}>{interpretations.identityForecast}</p>
+                  </CardContent>
+                </Card>
+                <Card className={cardBase}>
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 text-lg font-semibold"><ScrollText className="h-5 w-5" /> Accuracy note</div>
+                    <p className={cn('mt-2 text-sm leading-7', textMuted)}>{natal.accuracy}</p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </Section>
 
-          <Section id="dates" title="2026 Key Dates + Life Domains" subtitle="Specific forecast windows and domain-level interpretation." darkMode={state.ui.darkMode}>
+          <Section id="dates" title="Key Dates + Life Domains" subtitle="A more actionable forecast layer." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}>
-                <CardHeader><CardTitle>Key dates to watch</CardTitle><CardDescription className={textMuted}>Computed from birthday timing plus strongest transit proximity in 2026.</CardDescription></CardHeader>
+                <CardHeader>
+                  <CardTitle>Key windows to watch</CardTitle>
+                  <CardDescription className={textMuted}>Not exact prediction dates — more like timing themes and attention windows.</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-3">
-                  {interpretations.keyDates.map((item) => <div key={`${item.date}-${item.meaning}`} className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="font-medium">{item.date}</div><div className={cn('mt-1 text-sm', textMuted)}>{item.meaning}</div></div>)}
+                  {interpretations.keyDates.map((item) => (
+                    <div key={item.date} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <div className="font-medium">{item.date}</div>
+                      <div className={cn('mt-1 text-sm', textMuted)}>{item.meaning}</div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
+
               <Card className={cardBase}>
-                <CardHeader><CardTitle>Life domain forecast</CardTitle><CardDescription className={textMuted}>Tap through the domain views.</CardDescription></CardHeader>
+                <CardHeader>
+                  <CardTitle>Life domain forecast</CardTitle>
+                  <CardDescription className={textMuted}>How the current cycle tends to show up in real life.</CardDescription>
+                </CardHeader>
                 <CardContent className="space-y-4">
-                  {[{ id: 'love', title: 'Love', icon: Heart }, { id: 'money', title: 'Money', icon: Coins }, { id: 'career', title: 'Career', icon: Briefcase }].map(({ id, title, icon: Icon }) => {
+                  {[
+                    { id: 'love', title: 'Love', icon: Heart },
+                    { id: 'money', title: 'Money', icon: Coins },
+                    { id: 'career', title: 'Career', icon: Briefcase },
+                  ].map(({ id, title, icon: Icon }) => {
                     const active = state.ui.activeDomainTab[id] || 'now';
                     return (
                       <div key={id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <div className="mb-3 flex items-center gap-2 text-lg font-semibold"><Icon className="h-5 w-5" />{title}</div>
+                        <div className="mb-3 flex items-center gap-2 text-lg font-semibold">
+                          <Icon className="h-5 w-5" />
+                          {title}
+                        </div>
+
                         <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl bg-white/5 p-1">
                           {['now', 'year', 'shadow'].map((tab) => (
-                            <button key={tab} onClick={() => setTab(id, tab)} className={cn('rounded-2xl px-3 py-2 text-sm transition', active === tab ? 'bg-fuchsia-500/30 text-white ring-1 ring-fuchsia-300/50' : 'bg-white/5 text-white/80 hover:bg-white/10')}>
+                            <button
+                              key={tab}
+                              onClick={() => setTab(id, tab)}
+                              className={cn(
+                                'rounded-2xl px-3 py-2 text-sm transition',
+                                active === tab ? 'bg-fuchsia-500/30 text-white ring-1 ring-fuchsia-300/50' : 'bg-white/5 text-white/80 hover:bg-white/10'
+                              )}
+                            >
                               {tab === 'year' ? 'Year' : tab[0].toUpperCase() + tab.slice(1)}
                             </button>
                           ))}
                         </div>
-                        <p className={cn('text-sm leading-7', textMuted)}>{interpretations.domains[id][active]}</p>
+
+                        <p className={cn('text-sm leading-7', textMuted)}>
+                          {interpretations.domains[id][active]}
+                        </p>
                       </div>
                     );
                   })}
@@ -923,11 +1275,88 @@ export default function App() {
             </div>
           </Section>
 
-          <Section id="transits" title="Current Transits" subtitle="The live astronomy layer feeding the present-tense reading." darkMode={state.ui.darkMode}>
+          <Section id="transits" title="Current Transits" subtitle="The live astrology layer feeding the present-tense reading." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-              <Card className={cardBase}><CardHeader><CardTitle>Orb meters</CardTitle><CardDescription className={textMuted}>Current transit pressure against natal points.</CardDescription></CardHeader><CardContent className="space-y-4">{liveData.orbMeters.map((m) => <div key={m.name} className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between gap-3"><div className="font-medium">{m.name}</div><div className="text-sm text-white/70">{m.value}%</div></div><div className="mt-3"><ProgressBar value={m.value} /></div><p className={cn('mt-3 text-sm', textMuted)}>{m.note}</p></div>)}</CardContent></Card>
-              <Card className={cardBase}><CardHeader><CardTitle>Current planets</CardTitle><CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription></CardHeader><CardContent className="space-y-3">{liveData.planets.map((planet) => <div key={planet.body} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-lg">{zodiacGlyph(planet.sign)}</div><div><div className="font-medium">{planet.body}</div><div className={cn('text-sm', textMuted)}>{planet.formatted}</div></div></div><div className="text-right text-sm">{planet.retrograde && <div className="text-amber-300">Rx</div>}{planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}</div></div>)}</CardContent></Card>
+              <Card className={cardBase}>
+                <CardHeader>
+                  <CardTitle>Orb meters</CardTitle>
+                  <CardDescription className={textMuted}>Current transit pressure against natal points.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {liveData.orbMeters.map((m) => (
+                    <div key={m.name} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="font-medium">{m.name}</div>
+                        <div className="text-sm text-white/70">{m.value}%</div>
+                      </div>
+                      <div className="mt-3"><ProgressBar value={m.value} /></div>
+                      <p className={cn('mt-3 text-sm', textMuted)}>{m.note}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card className={cardBase}>
+                <CardHeader>
+                  <CardTitle>Current planets</CardTitle>
+                  <CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {liveData.planets.map((planet) => (
+                    <div key={planet.body} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-lg">
+                          {zodiacGlyph(planet.sign)}
+                        </div>
+                        <div>
+                          <div className="font-medium">{planet.body}</div>
+                          <div className={cn('text-sm', textMuted)}>{planet.formatted}</div>
+                        </div>
+                      </div>
+                      <div className="text-right text-sm">
+                        {planet.retrograde && <div className="text-amber-300">Rx</div>}
+                        {planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
+
+            <Card className={cn(cardBase, 'mt-6')}>
+              <CardHeader>
+                <CardTitle>Strongest active transits</CardTitle>
+                <CardDescription className={textMuted}>Closest real-time aspects to natal placements.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {liveData.strongest.map((t, i) => (
+                  <div key={`${t.planet}-${t.natal}-${i}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-lg font-semibold">{t.planet} {t.aspect}</div>
+                    <div className={cn('mt-1 text-sm', textMuted)}>natal {t.natal}</div>
+                    <div className="mt-3 text-2xl font-semibold">{t.orb}°</div>
+                    <div className={cn('mt-1 text-sm', textMuted)}>orb</div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className={cn(cardBase, 'mt-6')}>
+              <CardHeader>
+                <CardTitle>Identity pressure curve</CardTitle>
+                <CardDescription className={textMuted}>The dashboard’s dynamic yearly contour based on current transit strength.</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={liveData.yearHeat}>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} />
+                    <XAxis dataKey="month" tick={{ fill: state.ui.darkMode ? '#f3e8ff' : '#334155' }} />
+                    <YAxis tick={{ fill: state.ui.darkMode ? '#f3e8ff' : '#334155' }} />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="identity" fillOpacity={0.25} strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </Section>
         </div>
       </div>
