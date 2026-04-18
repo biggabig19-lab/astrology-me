@@ -46,6 +46,14 @@ import {
 
 const APP_NAME = 'Astrology Me';
 const STORAGE_KEY = 'astrology-me-v5';
+const MOBILE_SECTIONS = [
+  { id: 'identity', label: 'Identity' },
+  { id: 'overview', label: 'Overview' },
+  { id: 'shadow', label: 'Shadow' },
+  { id: 'forecast', label: 'Forecast' },
+  { id: 'dates', label: 'Dates' },
+  { id: 'transits', label: 'Transits' },
+];
 
 const BODIES = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
 const ZODIAC = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
@@ -617,14 +625,27 @@ function BadgePill({ children, className = '' }) {
 function Input(props) {
   return <input {...props} className={cn('w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 outline-none', props.className || '')} />;
 }
-function Section({ id, title, subtitle, darkMode, children }) {
+function Section({ id, title, subtitle, darkMode, children, collapsibleMobile = false, isOpen = true, onToggle = null }) {
   return (
     <section id={id} className="scroll-mt-24">
       <div className="mb-4">
-        <h2 className={cn('text-2xl font-semibold tracking-tight md:text-3xl', darkMode ? 'text-white' : 'text-slate-900')}>{title}</h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className={cn('text-2xl font-semibold tracking-tight md:text-3xl', darkMode ? 'text-white' : 'text-slate-900')}>{title}</h2>
+          {collapsibleMobile && onToggle ? (
+            <button
+              type="button"
+              onClick={onToggle}
+              className={cn('rounded-xl px-3 py-1 text-xs font-medium md:hidden', darkMode ? 'bg-white/10 text-white/90' : 'bg-slate-900/10 text-slate-700')}
+            >
+              {isOpen ? 'Collapse' : 'Expand'}
+            </button>
+          ) : null}
+        </div>
         {subtitle ? <p className={cn('mt-1 text-sm md:text-base', darkMode ? 'text-white/70' : 'text-slate-600')}>{subtitle}</p> : null}
       </div>
-      {children}
+      <div className={cn(collapsibleMobile && !isOpen ? 'hidden md:block' : '')}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -763,7 +784,7 @@ function Landing({ onSubmit }) {
         <div className="mb-8 text-center">
           <BadgePill className="bg-orange-300/20 text-orange-100">{APP_NAME}</BadgePill>
           <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic profile ✨</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">Pop in your birth details and we&apos;ll generate a playful, personal astrology portrait with a little extra sparkle.</p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with eal chart math under the hood.</p>
         </div>
 
         <div className="mx-auto max-w-2xl">
@@ -838,6 +859,16 @@ function Landing({ onSubmit }) {
 export default function App() {
   const [state, setState] = usePersistedState();
   const [now, setNow] = useState(new Date());
+  const [mobileSectionOpen, setMobileSectionOpen] = useState({
+    identity: true,
+    overview: true,
+    convergence: false,
+    shadow: false,
+    forecast: true,
+    dates: true,
+    transits: false,
+  });
+  const [activeMobileSection, setActiveMobileSection] = useState('identity');
   const forecastYear = now.getFullYear();
 
   useEffect(() => {
@@ -941,6 +972,12 @@ export default function App() {
   const surfaceSoft = state.ui.darkMode ? 'bg-white/5' : 'bg-slate-100/80';
   const accentText = state.ui.darkMode ? 'text-white/80' : 'text-slate-700';
   const setTab = (group, value) => setState((s) => ({ ...s, ui: { ...s.ui, activeDomainTab: { ...s.ui.activeDomainTab, [group]: value } } }));
+  const jumpToSection = (id) => {
+    setMobileSectionOpen((prev) => ({ ...prev, [id]: true }));
+    setActiveMobileSection(id);
+    const target = document.getElementById(id);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   if (!state.profile) return <Landing onSubmit={(profile) => setState((s) => ({ ...s, profile }))} />;
   if (!natal) {
@@ -1004,8 +1041,28 @@ export default function App() {
           </div>
         </motion.section>
 
+        <div className="sticky top-2 z-20 mt-4 overflow-x-auto pb-2 md:hidden">
+          <div className={cn('inline-flex min-w-full gap-2 rounded-2xl border px-2 py-2 backdrop-blur-md', sectionBorder, state.ui.darkMode ? 'bg-black/25' : 'bg-white/80')}>
+            {MOBILE_SECTIONS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => jumpToSection(item.id)}
+                className={cn(
+                  'whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition',
+                  activeMobileSection === item.id
+                    ? 'bg-fuchsia-500/35 text-white ring-1 ring-fuchsia-300/50'
+                    : (state.ui.darkMode ? 'bg-white/10 text-white/80' : 'bg-slate-900/10 text-slate-700')
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-8 grid gap-10">
-          <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode}>
+          <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.identity} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, identity: !prev.identity }))}>
             <div className="grid gap-4 md:grid-cols-3">
               <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerKind={natal.sunSign === 'Aries' ? 'aries' : 'default'} label={natal.sunSign} darkMode={state.ui.darkMode} />
               <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerKind={natal.nakshatra.name === 'Bharani' ? 'bharani' : 'default'} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
@@ -1013,7 +1070,7 @@ export default function App() {
             </div>
           </Section>
 
-          <Section id="overview" title="Overview" subtitle="The app should feel like the user learned something real about themselves." darkMode={state.ui.darkMode}>
+          <Section id="overview" title="Overview" subtitle="The app should feel like the user learned something real about themselves." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.overview} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, overview: !prev.overview }))}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Deep personality read</CardTitle><CardDescription className={textMuted}>A longer portrait instead of just a sign label.</CardDescription></CardHeader>
@@ -1033,7 +1090,7 @@ export default function App() {
             </div>
           </Section>
 
-          <Section id="convergence" title="Where All Three Converge" subtitle="This is usually where the user recognizes themselves most strongly." darkMode={state.ui.darkMode}>
+          <Section id="convergence" title="Where All Three Converge" subtitle="This is usually where the user recognizes themselves most strongly." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.convergence} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, convergence: !prev.convergence }))}>
             <div className="grid gap-4">
               {interpretations.convergence.map((item) => (
                 <Card key={item.title} className={cardBase}><CardContent className="p-5"><div className="flex items-center gap-2 text-lg font-semibold"><Gem className="h-5 w-5 text-fuchsia-300" />{item.title}</div><p className={cn('mt-3 text-sm leading-7', textMuted)}>{item.body}</p></CardContent></Card>
@@ -1041,7 +1098,7 @@ export default function App() {
             </div>
           </Section>
 
-          <Section id="shadow" title="Shadow Analysis" subtitle="Protective patterns, not moral failure." darkMode={state.ui.darkMode}>
+          <Section id="shadow" title="Shadow Analysis" subtitle="Protective patterns, not moral failure." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.shadow} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, shadow: !prev.shadow }))}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Shadow activation radar</CardTitle><CardDescription className={textMuted}>Weighted by live transit pressure.</CardDescription></CardHeader>
@@ -1054,7 +1111,7 @@ export default function App() {
             <Card className={cn(cardBase, 'mt-6')}><CardHeader><CardTitle>Highest expression</CardTitle><CardDescription className={textMuted}>Where the chart can go when the person matures into it.</CardDescription></CardHeader><CardContent className="space-y-3">{interpretations.highestExpression.map((item) => <div key={item} className={cn('rounded-2xl border p-4 text-sm leading-6', surfaceBase)}>{item}</div>)}</CardContent></Card>
           </Section>
 
-          <Section id="forecast" title={`${forecastYear} Forecast`} subtitle="Now using computed key dates rather than generic placeholders." darkMode={state.ui.darkMode}>
+          <Section id="forecast" title={`${forecastYear} Forecast`} subtitle="Now using computed key dates rather than generic placeholders." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.forecast} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, forecast: !prev.forecast }))}>
             <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Year contour</CardTitle><CardDescription className={textMuted}>A mobile-friendly heatmap of domain intensity.</CardDescription></CardHeader>
@@ -1078,7 +1135,7 @@ export default function App() {
             </div>
           </Section>
 
-          <Section id="dates" title={`${forecastYear} Key Dates + Life Domains`} subtitle="Specific forecast windows and domain-level interpretation." darkMode={state.ui.darkMode}>
+          <Section id="dates" title={`${forecastYear} Key Dates + Life Domains`} subtitle="Specific forecast windows and domain-level interpretation." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.dates} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, dates: !prev.dates }))}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Key dates to watch</CardTitle><CardDescription className={textMuted}>{`Computed from birthday timing plus strongest transit proximity in ${forecastYear}.`}</CardDescription></CardHeader>
@@ -1110,7 +1167,7 @@ export default function App() {
             </div>
           </Section>
 
-          <Section id="transits" title="Current Transits" subtitle="The live astronomy layer feeding the present-tense reading." darkMode={state.ui.darkMode}>
+          <Section id="transits" title="Current Transits" subtitle="The live astronomy layer feeding the present-tense reading." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.transits} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, transits: !prev.transits }))}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}><CardHeader><CardTitle>Orb meters</CardTitle><CardDescription className={textMuted}>Current transit pressure against natal points.</CardDescription></CardHeader><CardContent className="space-y-4">{liveData.orbMeters.map((m) => <div key={m.name} className={cn('rounded-2xl border p-4', surfaceBase)}><div className="flex items-center justify-between gap-3"><div className="font-medium">{m.name}</div><div className={cn('text-sm', state.ui.darkMode ? 'text-white/70' : 'text-slate-600')}>{m.value}%</div></div><div className="mt-3"><ProgressBar value={m.value} /></div><p className={cn('mt-3 text-sm', textMuted)}>{m.note}</p></div>)}</CardContent></Card>
               <Card className={cardBase}><CardHeader><CardTitle>Current planets</CardTitle><CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription></CardHeader><CardContent className="space-y-3">{liveData.planets.map((planet) => <div key={planet.body} className={cn('flex items-center justify-between rounded-2xl border p-3', surfaceBase)}><div className="flex items-center gap-3"><div className={cn('flex h-10 w-10 items-center justify-center rounded-full border text-lg', state.ui.darkMode ? 'border-white/10 bg-white/10' : 'border-slate-200 bg-slate-100', accentText)}>{zodiacGlyph(planet.sign)}</div><div><div className="font-medium">{planet.body}</div><div className={cn('text-sm', textMuted)}>{planet.formatted}</div></div></div><div className="text-right text-sm">{planet.retrograde && <div className="text-amber-300">Rx</div>}{planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}</div></div>)}</CardContent></Card>
