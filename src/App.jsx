@@ -1061,15 +1061,15 @@ export default function App() {
           </button>
         </div>
 
-        <div className="sticky top-2 z-20 mt-3 pb-2 md:hidden">
-          <div className={cn('grid grid-cols-3 gap-2 rounded-2xl border px-2 py-2 backdrop-blur-md', sectionBorder, state.ui.darkMode ? 'bg-black/25' : 'bg-white/80')}>
+        <div className="sticky top-2 z-20 mt-3 w-full pb-2 md:hidden">
+          <div className={cn('grid w-full grid-cols-3 gap-2 rounded-2xl border px-2 py-2 backdrop-blur-md', sectionBorder, state.ui.darkMode ? 'bg-black/25' : 'bg-white/80')}>
             {MOBILE_SECTIONS.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => jumpToSection(item.id)}
                 className={cn(
-                  'rounded-xl px-2 py-2.5 text-sm font-medium transition',
+                  'min-w-0 truncate rounded-xl px-2 py-2.5 text-sm font-medium transition',
                   activeMobileSection === item.id
                     ? 'bg-fuchsia-500/35 text-white ring-1 ring-fuchsia-300/50'
                     : (state.ui.darkMode ? 'bg-white/10 text-white/80' : 'bg-slate-900/10 text-slate-700')
