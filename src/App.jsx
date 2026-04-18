@@ -62,6 +62,21 @@ const NAKSHATRAS = [
   'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
   'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishta', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'
 ];
+const ZODIAC_EMOJI = {
+  Aries: '🐏', Taurus: '🐂', Gemini: '👯', Cancer: '🦀', Leo: '🦁', Virgo: '🌾',
+  Libra: '⚖️', Scorpio: '🦂', Sagittarius: '🏹', Capricorn: '🐐', Aquarius: '🏺', Pisces: '🐟',
+};
+const NAKSHATRA_EMOJI = {
+  Ashwini: '🐎', Bharani: '🐘', Krittika: '🔥', Rohini: '🌸', Mrigashira: '🦌', Ardra: '⛈️',
+  Punarvasu: '🏹', Pushya: '🌼', Ashlesha: '🐍', Magha: '👑', 'Purva Phalguni': '🎨', 'Uttara Phalguni': '🌞',
+  Hasta: '✋', Chitra: '💎', Swati: '🌬️', Vishakha: '🌿', Anuradha: '🤝', Jyeshtha: '🛡️',
+  Mula: '🌱', 'Purva Ashadha': '💧', 'Uttara Ashadha': '🏔️', Shravana: '👂', Dhanishta: '🥁', Shatabhisha: '🌌',
+  'Purva Bhadrapada': '⚡', 'Uttara Bhadrapada': '🐠', Revati: '🛶',
+};
+const CHINESE_ANIMAL_EMOJI = {
+  Rat: '🐀', Ox: '🐂', Tiger: '🐅', Rabbit: '🐇', Dragon: '🐉', Snake: '🐍',
+  Horse: '🐎', Goat: '🐐', Monkey: '🐒', Rooster: '🐓', Dog: '🐕', Pig: '🐖',
+};
 
 const BODY_GLYPHS = {
   Sun: '☉',
@@ -216,10 +231,6 @@ function getChineseZodiac(date) {
   const animal = animals[(approxYear - 4) % 12];
   const element = elements[(approxYear - 4) % 10];
   return `${element} ${animal}`;
-}
-
-function getChineseAnimal(zodiacString) {
-  return zodiacString.split(' ').pop();
 }
 
 async function resolveLocation(query) {
@@ -627,7 +638,7 @@ function Input(props) {
 }
 function Section({ id, title, subtitle, darkMode, children, collapsibleMobile = false, isOpen = true, onToggle = null }) {
   return (
-    <section id={id} className="scroll-mt-24">
+    <section id={id} className="scroll-mt-32 md:scroll-mt-24">
       <div className="mb-4">
         <div className="flex items-start justify-between gap-3">
           <h2 className={cn('text-2xl font-semibold tracking-tight md:text-3xl', darkMode ? 'text-white' : 'text-slate-900')}>{title}</h2>
@@ -635,7 +646,7 @@ function Section({ id, title, subtitle, darkMode, children, collapsibleMobile = 
             <button
               type="button"
               onClick={onToggle}
-              className={cn('rounded-xl px-3 py-1 text-xs font-medium md:hidden', darkMode ? 'bg-white/10 text-white/90' : 'bg-slate-900/10 text-slate-700')}
+              className={cn('rounded-xl px-3 py-2 text-sm font-medium md:hidden', darkMode ? 'bg-white/10 text-white/90' : 'bg-slate-900/10 text-slate-700')}
             >
               {isOpen ? 'Collapse' : 'Expand'}
             </button>
@@ -676,26 +687,27 @@ function ExpandableBlock({ title, children, darkMode = true }) {
   );
 }
 
-function Sticker({ kind, label }) {
-  const common = 'h-24 w-24 rounded-[2rem] border border-white/20 bg-white/10 backdrop-blur-sm shadow-xl flex items-center justify-center';
-  if (kind === 'aries') {
-    return <div className={common}><div className="text-5xl">🐏</div><div className="sr-only">{label}</div></div>;
+function identityEmoji(type, label) {
+  if (type === 'sun') return ZODIAC_EMOJI[label] || '✨';
+  if (type === 'nakshatra') return NAKSHATRA_EMOJI[label] || '✨';
+  if (type === 'chinese') {
+    const animal = label.split(' ').pop();
+    return CHINESE_ANIMAL_EMOJI[animal] || '✨';
   }
-  if (kind === 'bharani') {
-    return <div className={common}><div className="text-5xl">🐘</div><div className="sr-only">{label}</div></div>;
-  }
-  if (kind === 'dragon') {
-    return <div className={common}><div className="text-5xl">🐉</div><div className="sr-only">{label}</div></div>;
-  }
-  return <div className={common}><div className="text-4xl">✨</div><div className="sr-only">{label}</div></div>;
+  return '✨';
 }
 
-function IdentityCard({ title, subtitle, stickerKind, label, darkMode = true }) {
+function Sticker({ emoji, label }) {
+  const common = 'h-24 w-24 rounded-[2rem] border border-white/20 bg-white/10 backdrop-blur-sm shadow-xl flex items-center justify-center';
+  return <div className={common}><div className="text-5xl">{emoji || '✨'}</div><div className="sr-only">{label}</div></div>;
+}
+
+function IdentityCard({ title, subtitle, stickerEmoji, label, darkMode = true }) {
   return (
     <Card className={cn('rounded-[2rem] border backdrop-blur-md', darkMode ? 'border-white/10 bg-white/5 text-white' : 'border-slate-200/80 bg-white text-slate-900')}>
       <CardContent className="p-5">
         <div className="flex items-center gap-4">
-          <Sticker kind={stickerKind} label={label} />
+          <Sticker emoji={stickerEmoji} label={label} />
           <div>
             <div className="text-lg font-semibold">{title}</div>
             <div className={cn('mt-1 text-sm', darkMode ? 'text-white/70' : 'text-slate-600')}>{subtitle}</div>
@@ -978,6 +990,9 @@ export default function App() {
     const target = document.getElementById(id);
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+  const setAllMobileSections = (isOpen) => {
+    setMobileSectionOpen((prev) => Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: isOpen }), {}));
+  };
 
   if (!state.profile) return <Landing onSubmit={(profile) => setState((s) => ({ ...s, profile }))} />;
   if (!natal) {
@@ -1000,12 +1015,10 @@ export default function App() {
     );
   }
 
-  const chineseAnimal = getChineseAnimal(natal.chineseZodiac);
-
   return (
-    <div className={cn('min-h-screen transition-colors duration-300', themeShell)}>
+    <div className={cn('min-h-screen overflow-x-clip transition-colors duration-300', themeShell)}>
       <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
-        <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <BadgePill className="bg-fuchsia-500/20 text-fuchsia-200">{APP_NAME}</BadgePill>
             <h1 className="mt-3 text-3xl font-semibold md:text-5xl">{state.profile.name || 'Your chart'}</h1>
@@ -1015,7 +1028,7 @@ export default function App() {
               <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {state.profile.locationLabel}</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 self-start md:self-auto">
             <button onClick={() => setState((s) => ({ ...s, profile: null }))} className={cn('rounded-2xl px-4 py-2 text-sm', state.ui.darkMode ? 'bg-white/10 text-white hover:bg-white/15' : 'bg-slate-900/10 text-slate-800 hover:bg-slate-900/15')}>New chart</button>
             <Toggle checked={state.ui.darkMode} onChange={(v) => setState((s) => ({ ...s, ui: { ...s.ui, darkMode: v } }))} />
           </div>
@@ -1041,15 +1054,32 @@ export default function App() {
           </div>
         </motion.section>
 
-        <div className="sticky top-2 z-20 mt-4 overflow-x-auto pb-2 md:hidden">
-          <div className={cn('inline-flex min-w-full gap-2 rounded-2xl border px-2 py-2 backdrop-blur-md', sectionBorder, state.ui.darkMode ? 'bg-black/25' : 'bg-white/80')}>
+        <div className="mt-4 flex items-center gap-2 md:hidden">
+          <button
+            type="button"
+            onClick={() => setAllMobileSections(true)}
+            className={cn('rounded-xl px-3 py-2 text-xs font-medium', state.ui.darkMode ? 'bg-white/10 text-white/90' : 'bg-slate-900/10 text-slate-700')}
+          >
+            Expand all
+          </button>
+          <button
+            type="button"
+            onClick={() => setAllMobileSections(false)}
+            className={cn('rounded-xl px-3 py-2 text-xs font-medium', state.ui.darkMode ? 'bg-white/10 text-white/90' : 'bg-slate-900/10 text-slate-700')}
+          >
+            Collapse all
+          </button>
+        </div>
+
+        <div className="sticky top-2 z-20 mt-3 w-full pb-2 md:hidden">
+          <div className={cn('grid w-full grid-cols-3 gap-2 rounded-2xl border px-2 py-2 backdrop-blur-md', sectionBorder, state.ui.darkMode ? 'bg-black/25' : 'bg-white/80')}>
             {MOBILE_SECTIONS.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => jumpToSection(item.id)}
                 className={cn(
-                  'whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition',
+                  'min-w-0 truncate rounded-xl px-2 py-2.5 text-sm font-medium transition',
                   activeMobileSection === item.id
                     ? 'bg-fuchsia-500/35 text-white ring-1 ring-fuchsia-300/50'
                     : (state.ui.darkMode ? 'bg-white/10 text-white/80' : 'bg-slate-900/10 text-slate-700')
@@ -1064,9 +1094,9 @@ export default function App() {
         <div className="mt-8 grid gap-10">
           <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.identity} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, identity: !prev.identity }))}>
             <div className="grid gap-4 md:grid-cols-3">
-              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerKind={natal.sunSign === 'Aries' ? 'aries' : 'default'} label={natal.sunSign} darkMode={state.ui.darkMode} />
-              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerKind={natal.nakshatra.name === 'Bharani' ? 'bharani' : 'default'} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
-              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerKind={chineseAnimal === 'Dragon' ? 'dragon' : 'default'} label={natal.chineseZodiac} darkMode={state.ui.darkMode} />
+              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerEmoji={identityEmoji('sun', natal.sunSign)} label={natal.sunSign} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerEmoji={identityEmoji('nakshatra', natal.nakshatra.name)} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerEmoji={identityEmoji('chinese', natal.chineseZodiac)} label={natal.chineseZodiac} darkMode={state.ui.darkMode} />
             </div>
           </Section>
 
@@ -1116,16 +1146,33 @@ export default function App() {
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Year contour</CardTitle><CardDescription className={textMuted}>A mobile-friendly heatmap of domain intensity.</CardDescription></CardHeader>
                 <CardContent className="space-y-3">
-                  {liveData.yearHeat.map((m) => (
-                    <div key={m.month} className="grid grid-cols-[42px_repeat(5,1fr)] items-center gap-2 text-xs md:text-sm">
-                      <div className={textMuted}>{m.month}</div>
-                      {['love', 'money', 'career', 'health', 'identity'].map((k) => {
-                        const v = m[k];
-                        return <div key={k} className={cn('rounded-xl px-2 py-2 text-center font-medium', state.ui.darkMode ? '' : 'text-slate-800')} style={{ background: `linear-gradient(90deg, rgba(244,114,182,.18), rgba(168,85,247,${v / 100}))` }}>{v}</div>;
-                      })}
+                  <div className="space-y-3">
+                    <div className={cn('grid grid-cols-[42px_repeat(5,minmax(0,1fr))] gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]', textMuted)}>
+                      <div></div>
+                      <div className="text-center">Love</div>
+                      <div className="text-center">Money</div>
+                      <div className="text-center">Career</div>
+                      <div className="text-center">Health</div>
+                      <div className="text-center">Identity</div>
                     </div>
-                  ))}
-                  <div className={cn('grid grid-cols-[42px_repeat(5,1fr)] gap-2 text-[11px] uppercase tracking-[0.18em]', textMuted)}><div></div><div>Love</div><div>Money</div><div>Career</div><div>Health</div><div>Identity</div></div>
+                    {liveData.yearHeat.map((m) => (
+                      <div key={m.month} className="grid grid-cols-[42px_repeat(5,minmax(0,1fr))] items-center gap-2 text-xs md:text-sm">
+                        <div className={cn('font-medium', textMuted)}>{m.month}</div>
+                        {['love', 'money', 'career', 'health', 'identity'].map((k) => {
+                          const v = m[k];
+                          return (
+                            <div
+                              key={k}
+                              className={cn('rounded-xl px-1.5 py-2 text-center text-[11px] font-semibold sm:px-2 sm:text-xs', state.ui.darkMode ? '' : 'text-slate-800')}
+                              style={{ background: `linear-gradient(90deg, rgba(244,114,182,.18), rgba(168,85,247,${v / 100}))` }}
+                            >
+                              {v}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
               <div className="space-y-4">
@@ -1170,7 +1217,7 @@ export default function App() {
           <Section id="transits" title="Current Transits" subtitle="The live astronomy layer feeding the present-tense reading." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.transits} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, transits: !prev.transits }))}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}><CardHeader><CardTitle>Orb meters</CardTitle><CardDescription className={textMuted}>Current transit pressure against natal points.</CardDescription></CardHeader><CardContent className="space-y-4">{liveData.orbMeters.map((m) => <div key={m.name} className={cn('rounded-2xl border p-4', surfaceBase)}><div className="flex items-center justify-between gap-3"><div className="font-medium">{m.name}</div><div className={cn('text-sm', state.ui.darkMode ? 'text-white/70' : 'text-slate-600')}>{m.value}%</div></div><div className="mt-3"><ProgressBar value={m.value} /></div><p className={cn('mt-3 text-sm', textMuted)}>{m.note}</p></div>)}</CardContent></Card>
-              <Card className={cardBase}><CardHeader><CardTitle>Current planets</CardTitle><CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription></CardHeader><CardContent className="space-y-3">{liveData.planets.map((planet) => <div key={planet.body} className={cn('flex items-center justify-between rounded-2xl border p-3', surfaceBase)}><div className="flex items-center gap-3"><div className={cn('flex h-10 w-10 items-center justify-center rounded-full border text-lg', state.ui.darkMode ? 'border-white/10 bg-white/10' : 'border-slate-200 bg-slate-100', accentText)}>{zodiacGlyph(planet.sign)}</div><div><div className="font-medium">{planet.body}</div><div className={cn('text-sm', textMuted)}>{planet.formatted}</div></div></div><div className="text-right text-sm">{planet.retrograde && <div className="text-amber-300">Rx</div>}{planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}</div></div>)}</CardContent></Card>
+              <Card className={cardBase}><CardHeader><CardTitle>Current planets</CardTitle><CardDescription className={textMuted}>Live geocentric ecliptic positions.</CardDescription></CardHeader><CardContent className="space-y-3">{liveData.planets.map((planet) => <div key={planet.body} className={cn('flex items-center justify-between rounded-2xl border p-3', surfaceBase)}><div className="flex min-w-0 items-center gap-3"><div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-lg', state.ui.darkMode ? 'border-white/10 bg-white/10' : 'border-slate-200 bg-slate-100', accentText)}>{zodiacGlyph(planet.sign)}</div><div className="min-w-0"><div className="font-medium">{planet.body}</div><div className={cn('truncate text-sm', textMuted)}>{planet.formatted}</div></div></div><div className="ml-2 text-right text-sm">{planet.retrograde && <div className="text-amber-300">Rx</div>}{planet.elongation != null && <div className={textMuted}>{Math.round(planet.elongation)}°</div>}</div></div>)}</CardContent></Card>
             </div>
           </Section>
         </div>
