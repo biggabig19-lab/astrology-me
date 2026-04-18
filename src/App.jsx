@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 
 const APP_NAME = 'Astrology Me';
+const LANDING_BACKGROUND_URL = '/landing-background.png';
 const STORAGE_KEY = 'astrology-me-v5';
 const MOBILE_SECTIONS = [
   { id: 'overview', label: 'Overview' },
@@ -791,28 +792,39 @@ function Landing({ onSubmit }) {
   const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_15%_10%,_rgba(255,186,120,0.45),_transparent_34%),radial-gradient(circle_at_85%_20%,_rgba(255,125,93,0.35),_transparent_30%),radial-gradient(circle_at_50%_110%,_rgba(255,84,143,0.2),_transparent_45%),linear-gradient(180deg,#20062f_0%,#311047_42%,#1a1238_100%)] px-4 py-10 text-white">
-      <div className="mx-auto max-w-3xl">
+    <div
+      className="relative min-h-screen overflow-hidden px-4 py-10 text-white"
+      style={{
+        backgroundColor: '#12091f',
+        backgroundImage: `linear-gradient(180deg, rgba(7, 2, 20, 0.32) 0%, rgba(8, 4, 22, 0.5) 45%, rgba(6, 2, 15, 0.62) 100%), url(${LANDING_BACKGROUND_URL})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div className="relative mx-auto max-w-3xl">
         <div className="mb-8 text-center">
-          <BadgePill className="bg-orange-300/20 text-orange-100">{APP_NAME}</BadgePill>
-          <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic profile ✨</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.</p>
+          <BadgePill className="border border-white/10 bg-white/10 text-orange-100 shadow-[0_8px_28px_rgba(0,0,0,0.35)]">{APP_NAME}</BadgePill>
+          <h1 className="mt-4 bg-gradient-to-b from-amber-100 via-orange-100 to-amber-200 bg-clip-text text-4xl font-semibold leading-tight text-transparent drop-shadow-[0_5px_16px_rgba(0,0,0,0.55)] md:text-6xl">Let&apos;s build your cosmic profile ✨</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-white/80 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.</p>
+          <div className="mx-auto mt-5 h-px w-full max-w-2xl bg-gradient-to-r from-transparent via-white/35 to-transparent" />
         </div>
 
         <div className="mx-auto max-w-2xl">
-          <Card className="rounded-[2.2rem] border border-orange-200/20 bg-gradient-to-br from-white/10 via-orange-300/10 to-rose-300/10 shadow-[0_20px_60px_rgba(255,136,77,0.16)] backdrop-blur-md">
+          <Card className="rounded-[2.2rem] border border-orange-100/35 bg-[linear-gradient(150deg,rgba(255,255,255,0.14)_0%,rgba(255,179,109,0.14)_34%,rgba(41,22,70,0.35)_100%)] shadow-[0_28px_80px_rgba(7,2,19,0.72),inset_0_0_0_1px_rgba(255,225,185,0.2)] backdrop-blur-md">
             <CardHeader>
-              <CardTitle>Start your chart</CardTitle>
-              <CardDescription className="text-white/75">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
+              <CardTitle className="text-3xl text-orange-50 drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]">Start your chart</CardTitle>
+              <CardDescription className="text-white/85">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm text-white/80">Name or nickname</label>
-                <Input value={form.name} onChange={(e) => update('name', e.target.value)} />
+                <Input className="border-orange-100/30 bg-slate-950/45 text-orange-50 placeholder:text-orange-100/45" value={form.name} onChange={(e) => update('name', e.target.value)} />
               </div>
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth date</label>
                 <Input
+                  className="border-orange-100/30 bg-slate-950/45 text-orange-50 placeholder:text-orange-100/45"
                   type="text"
                   inputMode="numeric"
                   placeholder="MM/DD/YYYY"
@@ -823,6 +835,7 @@ function Landing({ onSubmit }) {
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth time</label>
                 <Input
+                  className="border-orange-100/30 bg-slate-950/45 text-orange-50 placeholder:text-orange-100/45"
                   type="text"
                   inputMode="text"
                   placeholder="HH:MM AM"
@@ -838,9 +851,9 @@ function Landing({ onSubmit }) {
               </div>
               <div className="relative">
                 <label className="mb-2 block text-sm text-white/80">Birth location</label>
-                <Input value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
+                <Input className="border-orange-100/30 bg-slate-950/45 text-orange-50 placeholder:text-orange-100/45" value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
                 {suggestionsOpen && suggestions.length > 0 && (
-                  <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
+                  <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-orange-100/20 bg-[#140b27]/95 shadow-2xl backdrop-blur-md">
                     {suggestions.map((place, idx) => (
                       <button key={`${place.label}-${idx}`} type="button" onClick={() => chooseSuggestion(place)} className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0">
                         <div className="font-medium">{place.label}</div>
@@ -857,7 +870,7 @@ function Landing({ onSubmit }) {
                 </div>
               )}
               {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
-              <button onClick={handleSubmit} disabled={disabled || loading} className="w-full rounded-2xl bg-gradient-to-r from-orange-400 via-rose-400 to-fuchsia-500 px-4 py-3 font-semibold text-white shadow-[0_10px_30px_rgba(255,138,76,0.35)] transition hover:brightness-105 disabled:opacity-50">
+              <button onClick={handleSubmit} disabled={disabled || loading} className="w-full rounded-2xl border border-orange-100/45 bg-gradient-to-r from-[#b96a2e] via-[#d08945] to-[#a0602e] px-4 py-3 text-lg font-semibold text-orange-50 shadow-[0_12px_32px_rgba(54,24,2,0.52),inset_0_0_10px_rgba(255,232,181,0.2)] transition hover:brightness-110 disabled:opacity-50">
                 {loading ? 'Resolving location...' : 'Generate dashboard'}
               </button>
             </CardContent>
