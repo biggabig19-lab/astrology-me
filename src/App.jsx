@@ -796,7 +796,7 @@ function Landing({ onSubmit }) {
       className="relative min-h-screen overflow-hidden px-4 py-10 text-white"
       style={{
         backgroundColor: '#12091f',
-        backgroundImage: `linear-gradient(180deg, rgba(7, 2, 20, 0.32) 0%, rgba(8, 4, 22, 0.5) 45%, rgba(6, 2, 15, 0.62) 100%), url(${LANDING_BACKGROUND_URL})`,
+        backgroundImage: `url(${LANDING_BACKGROUND_URL})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center center',
         backgroundRepeat: 'no-repeat',
@@ -811,7 +811,7 @@ function Landing({ onSubmit }) {
         </div>
 
         <div className="mx-auto max-w-2xl">
-          <Card className="rounded-[2.2rem] border border-orange-100/35 bg-[linear-gradient(150deg,rgba(255,255,255,0.14)_0%,rgba(255,179,109,0.14)_34%,rgba(41,22,70,0.35)_100%)] shadow-[0_28px_80px_rgba(7,2,19,0.72),inset_0_0_0_1px_rgba(255,225,185,0.2)] backdrop-blur-md">
+          <Card className="rounded-[2.2rem] border border-orange-100/35 bg-[linear-gradient(150deg,rgba(6,4,18,0.76)_0%,rgba(34,20,55,0.78)_46%,rgba(18,9,34,0.82)_100%)] shadow-[0_28px_80px_rgba(7,2,19,0.72),inset_0_0_0_1px_rgba(255,225,185,0.2)] backdrop-blur-md">
             <CardHeader>
               <CardTitle className="text-3xl text-orange-50 drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]">Start your chart</CardTitle>
               <CardDescription className="text-white/85">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
