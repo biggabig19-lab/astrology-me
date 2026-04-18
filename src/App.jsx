@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { DateTime } from 'luxon';
 import {
   GeoVector,
   RotateVector,
@@ -38,12 +39,18 @@ import {
   WandSparkles,
   MapPin,
   Orbit,
+  Globe,
 } from 'lucide-react';
 
 const APP_NAME = 'Astrology Me';
-const STORAGE_KEY = 'astrology-me-v2';
+const STORAGE_KEY = 'astrology-me-v3';
 const BODIES = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
 const ZODIAC = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+const NAKSHATRAS = [
+  'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha',
+  'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
+  'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishta', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'
+];
 
 const BODY_GLYPHS = {
   Sun: '☉',
@@ -63,20 +70,6 @@ const defaultState = {
   ui: {
     darkMode: true,
     activeDomainTab: { love: 'now', money: 'now', career: 'now' },
-  },
-  tracker: {
-    energy: 6,
-    mood: 6,
-    clarity: 5,
-    discipline: 5,
-    habits: {
-      journal: false,
-      movement: false,
-      deepWork: false,
-      meditation: false,
-      noImpulseSpend: false,
-    },
-    notes: '',
   },
 };
 
@@ -176,27 +169,96 @@ function deriveTone(transits) {
   return `Strongest active pattern: ${names}. Move with intention and avoid reactive overreach.`;
 }
 
-function safeDateFromProfile(profile) {
-  if (!profile?.birthDate) return null;
+function julianDay(date) {
+  return date.getTime() / 86400000 + 2440587.5;
+}
+
+function approximateAyanamsha(date) {
+  const jd = julianDay(date);
+  const t = (jd - 2451545.0) / 36525.0;
+  return 24.0 + (0.01397 * (t * 100));
+}
+
+function siderealLongitude(tropicalLongitude, date) {
+  return normalizeAngle(tropicalLongitude - approximateAyanamsha(date));
+}
+
+function getNakshatra(moonLongitude, date) {
+  const siderealMoon = siderealLongitude(moonLongitude, date);
+  const segment = 360 / 27;
+  const index = Math.floor(siderealMoon / segment);
+  const pada = Math.floor((siderealMoon % segment) / (segment / 4)) + 1;
+  return {
+    name: NAKSHATRAS[index] || 'Unknown',
+    pada,
+    siderealLongitude: siderealMoon,
+  };
+}
+
+function getChineseZodiac(date) {
+  const approxYear = (date.month < 2 || (date.month === 2 && date.day < 4)) ? date.year - 1 : date.year;
+  const animals = ['Rat', 'Ox', 'Tiger', 'Rabbit', 'Dragon', 'Snake', 'Horse', 'Goat', 'Monkey', 'Rooster', 'Dog', 'Pig'];
+  const elements = ['Wood', 'Wood', 'Fire', 'Fire', 'Earth', 'Earth', 'Metal', 'Metal', 'Water', 'Water'];
+  const animal = animals[(approxYear - 4) % 12];
+  const element = elements[(approxYear - 4) % 10];
+  return `${element} ${animal}`;
+}
+
+async function resolveLocation(query) {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Could not reach location service.');
+  const data = await res.json();
+  if (!data?.results?.length) throw new Error('Location not found. Try a city and country, like "Mumbai, India" or "Somerville, NJ, USA".');
+  const place = data.results[0];
+  return {
+    label: [place.name, place.admin1, place.country].filter(Boolean).join(', '),
+    latitude: place.latitude,
+    longitude: place.longitude,
+    timezone: place.timezone,
+    country: place.country,
+  };
+}
+
+async function searchLocations(query) {
+  if (!query || query.trim().length < 2) return [];
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=8&language=en&format=json`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const data = await res.json();
+  if (!data?.results?.length) return [];
+
+  return data.results.map((place) => ({
+    label: [place.name, place.admin1, place.country].filter(Boolean).join(', '),
+    latitude: place.latitude,
+    longitude: place.longitude,
+    timezone: place.timezone,
+    country: place.country,
+    name: place.name,
+    admin1: place.admin1,
+  }));
+}
+
+function birthDateTimeFromProfile(profile) {
+  if (!profile?.birthDate || !profile?.birthTime || !profile?.timezone) return null;
   const [year, month, day] = profile.birthDate.split('-').map(Number);
-  if (!year || !month || !day) return null;
-  let hour = 12;
-  let minute = 0;
-  if (!profile.unknownTime && profile.birthTime) {
-    const [h, m] = profile.birthTime.split(':').map(Number);
-    if (Number.isFinite(h)) hour = h;
-    if (Number.isFinite(m)) minute = m;
-  }
-  return new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const [hour, minute] = profile.birthTime.split(':').map(Number);
+  const dt = DateTime.fromObject(
+    { year, month, day, hour, minute },
+    { zone: profile.timezone }
+  );
+  if (!dt.isValid) return null;
+  return dt;
 }
 
 function generateNatalProfile(profile) {
-  const birthDate = safeDateFromProfile(profile);
-  if (!birthDate) return null;
+  const localBirth = birthDateTimeFromProfile(profile);
+  if (!localBirth) return null;
 
+  const birthUTC = localBirth.toUTC().toJSDate();
   const bodies = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
   const placements = bodies.map((body) => {
-    const longitude = geocentricLongitude(body, birthDate);
+    const longitude = geocentricLongitude(body, birthUTC);
     return {
       body,
       longitude,
@@ -207,9 +269,8 @@ function generateNatalProfile(profile) {
   });
 
   const placementMap = Object.fromEntries(placements.map((p) => [p.body, p]));
-  const signs = placements.map((p) => p.sign);
-  const elements = signs.reduce((acc, sign) => {
-    const el = elementForSign(sign);
+  const elements = placements.reduce((acc, p) => {
+    const el = elementForSign(p.sign);
     acc[el] = (acc[el] || 0) + 1;
     return acc;
   }, {});
@@ -218,9 +279,12 @@ function generateNatalProfile(profile) {
   const sun = placementMap.Sun;
   const moon = placementMap.Moon;
   const mercury = placementMap.Mercury;
+  const nakshatra = getNakshatra(moon.longitude, birthUTC);
+  const chineseZodiac = getChineseZodiac(localBirth);
 
   return {
-    birthDate,
+    birthUTC,
+    localBirth,
     placements,
     placementMap,
     sunSign: sun.sign,
@@ -228,9 +292,9 @@ function generateNatalProfile(profile) {
     mercurySign: mercury.sign,
     dominantElement,
     dominantQuality: qualityForSign(sun.sign),
-    accuracy: profile.unknownTime
-      ? 'Approximate chart: time unknown. Houses, rising sign, and some timing-sensitive details are intentionally softened.'
-      : 'Time-specific chart using the entered birth time. Rising/houses are still not calculated in this version because timezone and location conversion are not yet enabled.',
+    nakshatra,
+    chineseZodiac,
+    accuracy: 'Time and location were used together. Rising sign and houses are still not calculated in this version.',
   };
 }
 
@@ -271,6 +335,9 @@ function generateInterpretations(profile, natal, liveData) {
     Aquarius: 'Detached style but strong internal ideals and emotional principles.',
     Pisces: 'Highly receptive, empathic, and affected by atmosphere.',
   };
+
+  const nakshatraRead = `Moon in ${natal.nakshatra.name} pada ${natal.nakshatra.pada} adds a Vedic layer focused on instinct, karmic patterning, and emotional style.`;
+  const chineseRead = `${natal.chineseZodiac} adds a broader cultural archetype layer around temperament, cycle, and style of ambition.`;
 
   const actionGuidance = [
     `Lead with the strongest trait of ${sun.sign} — ${personalityTight[sun.sign]}`,
@@ -313,7 +380,7 @@ function generateInterpretations(profile, natal, liveData) {
 
   return {
     overview: `${sun.sign} Sun gives the core identity: the way this person initiates, pursues goals, and defines selfhood. ${moon.sign} Moon colors the emotional style and instinctive needs. ${mercury.sign} Mercury shapes thinking and communication.`,
-    personality: `${personalityTight[sun.sign]} Emotionally, ${moonReads[moon.sign]} Dominant element: ${natal.dominantElement}. Dominant quality: ${natal.dominantQuality}.`,
+    personality: `${personalityTight[sun.sign]} Emotionally, ${moonReads[moon.sign]} Dominant element: ${natal.dominantElement}. Dominant quality: ${natal.dominantQuality}. ${nakshatraRead} ${chineseRead}`,
     actionGuidance,
     shadowItems,
     domains: domainReads,
@@ -378,9 +445,6 @@ function BadgePill({ children, className = '' }) {
 function Input(props) {
   return <input {...props} className={cn('w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 outline-none', props.className || '')} />;
 }
-function TextArea(props) {
-  return <textarea {...props} className={cn('w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/35 outline-none', props.className || '')} />;
-}
 function Section({ id, title, subtitle, darkMode, children }) {
   return (
     <section id={id} className="scroll-mt-24">
@@ -403,17 +467,6 @@ function TinyStat({ label, value, icon: Icon, darkMode }) {
     </div>
   );
 }
-function Gauge({ label, value, darkMode }) {
-  return (
-    <div>
-      <div className={cn('mb-2 flex items-center justify-between text-sm', darkMode ? 'text-white/80' : 'text-slate-700')}>
-        <span className="capitalize">{label}</span>
-        <span>{value}/10</span>
-      </div>
-      <ProgressBar value={value * 10} />
-    </div>
-  );
-}
 
 function Landing({ onSubmit }) {
   const [form, setForm] = useState({
@@ -421,19 +474,90 @@ function Landing({ onSubmit }) {
     birthDate: '',
     birthTime: '',
     location: '',
-    unknownTime: false,
   });
 
-  const update = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+
+  const update = (key, value) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    if (key === 'location') {
+      setSelectedLocation(null);
+    }
+  };
+
+  useEffect(() => {
+    const query = form.location?.trim();
+    if (!query || query.length < 2) {
+      setSuggestions([]);
+      setSuggestionsOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchLocations(query);
+        setSuggestions(results);
+        setSuggestionsOpen(true);
+      } catch {
+        setSuggestions([]);
+        setSuggestionsOpen(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [form.location]);
+
+  const chooseSuggestion = (place) => {
+    setForm((f) => ({ ...f, location: place.label }));
+    setSelectedLocation(place);
+    setSuggestions([]);
+    setSuggestionsOpen(false);
+    setError('');
+  };
+
+  const handleSubmit = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      let resolved = selectedLocation;
+
+      if (!resolved) {
+        resolved = await resolveLocation(form.location);
+      }
+
+      onSubmit({
+        ...form,
+        location: resolved.label,
+        locationLabel: resolved.label,
+        latitude: resolved.latitude,
+        longitude: resolved.longitude,
+        timezone: resolved.timezone,
+        country: resolved.country,
+      });
+    } catch (e) {
+      setError(e.message || 'Could not resolve location.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const disabled = !form.birthDate || !form.birthTime || !form.location;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(208,90,255,0.20),_transparent_30%),radial-gradient(circle_at_80%_20%,_rgba(255,185,91,0.22),_transparent_25%),linear-gradient(180deg,#100523_0%,#150a2f_35%,#0b1225_100%)] px-4 py-8 text-white">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
           <BadgePill className="bg-fuchsia-500/20 text-fuchsia-200">{APP_NAME}</BadgePill>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">Enter a birth profile and generate a personal astrology dashboard.</h1>
+          <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight md:text-6xl">
+            Enter a birth profile and generate a personal astrology dashboard.
+          </h1>
           <p className="mt-4 max-w-2xl text-white/70 md:text-lg">
-            Mobile-first. Reusable. Personal. If birth time is unknown, the app makes a best-effort chart and clearly labels what becomes approximate.
+            Birth time and location are required in this version so the app can resolve the local birth moment correctly for international users.
           </p>
         </div>
 
@@ -441,37 +565,88 @@ function Landing({ onSubmit }) {
           <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
             <CardHeader>
               <CardTitle>Start your chart</CardTitle>
-              <CardDescription className="text-white/70">This version calculates planetary placements locally and generates a dashboard from the input.</CardDescription>
+              <CardDescription className="text-white/70">
+                This version resolves timezone from the entered location before calculating the chart.
+              </CardDescription>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm text-white/80">Name or nickname</label>
-                <Input placeholder="Nate" value={form.name} onChange={(e) => update('name', e.target.value)} />
+                <Input
+                  placeholder="Nate"
+                  value={form.name}
+                  onChange={(e) => update('name', e.target.value)}
+                />
               </div>
+
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth date</label>
-                <Input type="date" value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} />
+                <Input
+                  type="date"
+                  value={form.birthDate}
+                  onChange={(e) => update('birthDate', e.target.value)}
+                />
               </div>
+
               <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="block text-sm text-white/80">Birth time</label>
-                  <div className="flex items-center gap-2 text-sm text-white/70">
-                    <span>I don't know it</span>
-                    <Toggle checked={form.unknownTime} onChange={(v) => update('unknownTime', v)} />
+                <label className="mb-2 block text-sm text-white/80">Birth time</label>
+                <Input
+                  type="time"
+                  value={form.birthTime}
+                  onChange={(e) => update('birthTime', e.target.value)}
+                />
+              </div>
+
+              <div className="relative">
+                <label className="mb-2 block text-sm text-white/80">Birth location</label>
+                <Input
+                  placeholder="Mumbai, India"
+                  value={form.location}
+                  onChange={(e) => update('location', e.target.value)}
+                  onFocus={() => {
+                    if (suggestions.length) setSuggestionsOpen(true);
+                  }}
+                />
+
+                {suggestionsOpen && suggestions.length > 0 && (
+                  <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
+                    {suggestions.map((place, idx) => (
+                      <button
+                        key={`${place.label}-${idx}`}
+                        type="button"
+                        onClick={() => chooseSuggestion(place)}
+                        className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0"
+                      >
+                        <div className="font-medium">{place.label}</div>
+                        <div className="mt-1 text-xs text-white/50">{place.timezone}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {selectedLocation && (
+                <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                  Using: <strong>{selectedLocation.label}</strong>
+                  <div className="mt-1 text-xs text-emerald-200/80">
+                    Timezone: {selectedLocation.timezone}
                   </div>
                 </div>
-                <Input type="time" value={form.birthTime} onChange={(e) => update('birthTime', e.target.value)} disabled={form.unknownTime} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Birth location</label>
-                <Input placeholder="Somerville, NJ" value={form.location} onChange={(e) => update('location', e.target.value)} />
-              </div>
+              )}
+
+              {error ? (
+                <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">
+                  {error}
+                </div>
+              ) : null}
+
               <button
-                onClick={() => onSubmit(form)}
-                disabled={!form.birthDate}
+                onClick={handleSubmit}
+                disabled={disabled || loading}
                 className="w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500 px-4 py-3 font-medium text-white disabled:opacity-50"
               >
-                Generate dashboard
+                {loading ? 'Resolving location...' : 'Generate dashboard'}
               </button>
             </CardContent>
           </Card>
@@ -479,20 +654,34 @@ function Landing({ onSubmit }) {
           <div className="grid gap-4">
             <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
               <CardContent className="p-5">
-                <div className="flex items-center gap-3 text-lg font-semibold"><UserRound className="h-5 w-5 text-cyan-300" /> Personal intake</div>
-                <p className="mt-2 text-sm leading-6 text-white/70">One app, many people. This version starts with a birth intake flow instead of being hardcoded to one person.</p>
+                <div className="flex items-center gap-3 text-lg font-semibold">
+                  <Globe className="h-5 w-5 text-cyan-300" /> International-ready input
+                </div>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  The entered birth time is treated as local time for the entered place, then converted using that place’s timezone.
+                </p>
               </CardContent>
             </Card>
+
             <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
               <CardContent className="p-5">
-                <div className="flex items-center gap-3 text-lg font-semibold"><Clock3 className="h-5 w-5 text-amber-300" /> Time unknown mode</div>
-                <p className="mt-2 text-sm leading-6 text-white/70">When birth time is skipped, the app uses a best guess and explicitly marks the chart as approximate rather than pretending precision.</p>
+                <div className="flex items-center gap-3 text-lg font-semibold">
+                  <Moon className="h-5 w-5 text-violet-300" /> Nakshatra restored
+                </div>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  This version adds back a Vedic Moon nakshatra layer alongside the Western chart layer.
+                </p>
               </CardContent>
             </Card>
+
             <Card className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
               <CardContent className="p-5">
-                <div className="flex items-center gap-3 text-lg font-semibold"><WandSparkles className="h-5 w-5 text-fuchsia-300" /> Better interpretation layer</div>
-                <p className="mt-2 text-sm leading-6 text-white/70">Interpretations are generated from actual placements and live transits, with a clear note that richer source-backed text would require a backend/API layer.</p>
+                <div className="flex items-center gap-3 text-lg font-semibold">
+                  <WandSparkles className="h-5 w-5 text-fuchsia-300" /> Chinese zodiac restored
+                </div>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  This version also restores Chinese zodiac archetype reading as a parallel symbolic layer.
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -596,9 +785,6 @@ export default function App() {
     : 'rounded-[2rem] border border-slate-200/70 bg-white/80 text-slate-900 backdrop-blur-md';
 
   const textMuted = state.ui.darkMode ? 'text-white/70' : 'text-slate-600';
-
-  const updateHabit = (key, value) => setState((s) => ({ ...s, tracker: { ...s.tracker, habits: { ...s.tracker.habits, [key]: value } } }));
-  const updateCheck = (key, delta) => setState((s) => ({ ...s, tracker: { ...s.tracker, [key]: Math.max(1, Math.min(10, s.tracker[key] + delta)) } }));
   const setTab = (group, value) => setState((s) => ({ ...s, ui: { ...s.ui, activeDomainTab: { ...s.ui.activeDomainTab, [group]: value } } }));
 
   if (!state.profile) {
@@ -607,23 +793,6 @@ export default function App() {
 
   return (
     <div className={cn('min-h-screen transition-colors duration-300', themeShell)}>
-      <style>{`
-        html { scroll-behavior: smooth; }
-        .starfield::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background-image:
-            radial-gradient(circle at 12% 18%, rgba(255,255,255,.7) 0 1px, transparent 1px),
-            radial-gradient(circle at 82% 30%, rgba(255,255,255,.5) 0 1px, transparent 1px),
-            radial-gradient(circle at 50% 60%, rgba(255,255,255,.4) 0 1px, transparent 1px),
-            radial-gradient(circle at 22% 72%, rgba(255,255,255,.6) 0 1px, transparent 1px),
-            radial-gradient(circle at 68% 80%, rgba(255,255,255,.45) 0 1px, transparent 1px);
-          pointer-events: none;
-          opacity: .55;
-        }
-      `}</style>
-
       <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
@@ -631,8 +800,8 @@ export default function App() {
             <h1 className="mt-3 text-3xl font-semibold md:text-5xl">{state.profile.name || 'Your chart'}</h1>
             <div className={cn('mt-2 flex flex-wrap gap-2 text-sm', textMuted)}>
               <span className="inline-flex items-center gap-1"><CalendarDays className="h-4 w-4" /> {state.profile.birthDate}</span>
-              <span className="inline-flex items-center gap-1"><Clock3 className="h-4 w-4" /> {state.profile.unknownTime ? 'Time unknown (best guess)' : state.profile.birthTime}</span>
-              <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {state.profile.location || 'Location entered but not geocoded in this version'}</span>
+              <span className="inline-flex items-center gap-1"><Clock3 className="h-4 w-4" /> {state.profile.birthTime}</span>
+              <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {state.profile.locationLabel}</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -641,23 +810,23 @@ export default function App() {
           </div>
         </div>
 
-        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="starfield relative overflow-hidden rounded-[2rem] border border-white/10 p-6 md:p-8">
-          <div className="relative z-10 grid gap-6 lg:grid-cols-[1.35fr_.9fr]">
+        <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white/10 p-6 md:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1.35fr_.9fr]">
             <div>
-              <h2 className="max-w-3xl text-3xl font-semibold leading-tight md:text-5xl">Astrology that starts with real input, then builds a personalized dashboard.</h2>
+              <h2 className="max-w-3xl text-3xl font-semibold leading-tight md:text-5xl">A personal dashboard built from birth date, local birth time, and location.</h2>
               <p className={cn('mt-4 max-w-2xl text-base md:text-lg', textMuted)}>{interpretations.overview}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <BadgePill className="bg-rose-500/20 text-rose-200">{natal.sunSign} Sun</BadgePill>
                 <BadgePill className="bg-violet-500/20 text-violet-200">{natal.moonSign} Moon</BadgePill>
-                <BadgePill className="bg-cyan-500/20 text-cyan-100">{natal.mercurySign} Mercury</BadgePill>
-                <BadgePill className="bg-amber-500/20 text-amber-100">{natal.dominantElement} dominant</BadgePill>
+                <BadgePill className="bg-cyan-500/20 text-cyan-100">{natal.nakshatra.name}</BadgePill>
+                <BadgePill className="bg-amber-500/20 text-amber-100">{natal.chineseZodiac}</BadgePill>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
               <TinyStat label="Moon" value={liveData.cosmicWeather.moon} icon={Moon} darkMode={state.ui.darkMode} />
               <TinyStat label="Phase" value={liveData.cosmicWeather.phase} icon={Sparkles} darkMode={state.ui.darkMode} />
               <TinyStat label="Dominant Transit" value={liveData.cosmicWeather.dominant} icon={Orbit} darkMode={state.ui.darkMode} />
-              <TinyStat label="Accuracy" value={state.profile.unknownTime ? 'Approximate' : 'Time-specific'} icon={ShieldAlert} darkMode={state.ui.darkMode} />
+              <TinyStat label="Timezone" value={state.profile.timezone} icon={Globe} darkMode={state.ui.darkMode} />
             </div>
           </div>
         </motion.section>
@@ -668,7 +837,7 @@ export default function App() {
               <Card className={cardBase}>
                 <CardHeader>
                   <CardTitle>Personality brief</CardTitle>
-                  <CardDescription className={textMuted}>Tighter interpretation generated from natal placements.</CardDescription>
+                  <CardDescription className={textMuted}>Western, Vedic, and Chinese layers combined.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className={cn('leading-7', textMuted)}>{interpretations.personality}</p>
@@ -681,18 +850,20 @@ export default function App() {
               </Card>
               <Card className={cardBase}>
                 <CardHeader>
-                  <CardTitle>Confidence note</CardTitle>
-                  <CardDescription className={textMuted}>How precise this reading is and what is softened.</CardDescription>
+                  <CardTitle>System layers</CardTitle>
+                  <CardDescription className={textMuted}>What the app is reading from each tradition.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-4 text-sm text-amber-50">{natal.accuracy}</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm"><strong>Western:</strong> {natal.sunSign} Sun, {natal.moonSign} Moon, {natal.mercurySign} Mercury.</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm"><strong>Vedic:</strong> {natal.nakshatra.name} nakshatra, pada {natal.nakshatra.pada}.</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm"><strong>Chinese:</strong> {natal.chineseZodiac}.</div>
                   <div className={cn('text-sm leading-7', textMuted)}>{interpretations.sourcedNote}</div>
                 </CardContent>
               </Card>
             </div>
           </Section>
 
-          <Section id="natal" title="Natal Snapshot" subtitle="Calculated from the entered birth date and time input." darkMode={state.ui.darkMode}>
+          <Section id="natal" title="Natal Snapshot" subtitle="Calculated from entered birth date, local birth time, and resolved timezone." darkMode={state.ui.darkMode}>
             <div className="grid gap-6 lg:grid-cols-[1.05fr_.95fr]">
               <Card className={cardBase}>
                 <CardHeader>
@@ -724,9 +895,9 @@ export default function App() {
                     <div className="absolute inset-1/2 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-fuchsia-300/40 bg-fuchsia-500/20 text-center text-sm font-medium shadow-2xl shadow-fuchsia-500/20">
                       {natal.sunSign}
                       <br />
-                      {natal.moonSign}
+                      {natal.nakshatra.name}
                       <br />
-                      {natal.dominantElement}
+                      {natal.chineseZodiac.split(' ').pop()}
                     </div>
                   </div>
                 </CardContent>
@@ -746,6 +917,18 @@ export default function App() {
                     </CardContent>
                   </Card>
                 ))}
+                <Card className={cardBase}>
+                  <CardContent className="p-4">
+                    <div className="text-lg font-semibold">Nakshatra</div>
+                    <p className={cn('mt-1 text-sm', textMuted)}>{natal.nakshatra.name} · Pada {natal.nakshatra.pada}</p>
+                  </CardContent>
+                </Card>
+                <Card className={cardBase}>
+                  <CardContent className="p-4">
+                    <div className="text-lg font-semibold">Chinese zodiac</div>
+                    <p className={cn('mt-1 text-sm', textMuted)}>{natal.chineseZodiac}</p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </Section>
@@ -754,7 +937,7 @@ export default function App() {
             <div className="grid gap-4 md:grid-cols-3">
               <Card className={cardBase}><CardContent className="p-5"><Flame className="mb-3 h-5 w-5 text-rose-300" /><h3 className="text-lg font-semibold">{natal.sunSign} Sun</h3><p className={cn('mt-2 text-sm leading-6', textMuted)}>Core identity, self-direction, style of action, ego strength, and how life force gets expressed.</p></CardContent></Card>
               <Card className={cardBase}><CardContent className="p-5"><Moon className="mb-3 h-5 w-5 text-violet-300" /><h3 className="text-lg font-semibold">{natal.moonSign} Moon</h3><p className={cn('mt-2 text-sm leading-6', textMuted)}>Emotional needs, instinctive reactions, regulation style, and the deeper private self.</p></CardContent></Card>
-              <Card className={cardBase}><CardContent className="p-5"><Eye className="mb-3 h-5 w-5 text-cyan-300" /><h3 className="text-lg font-semibold">{natal.mercurySign} Mercury</h3><p className={cn('mt-2 text-sm leading-6', textMuted)}>Thinking speed, narrative style, learning behavior, and how interpretation gets formed and communicated.</p></CardContent></Card>
+              <Card className={cardBase}><CardContent className="p-5"><Eye className="mb-3 h-5 w-5 text-cyan-300" /><h3 className="text-lg font-semibold">{natal.nakshatra.name}</h3><p className={cn('mt-2 text-sm leading-6', textMuted)}>Vedic Moon-lunar patterning layer, including instinct and karmic flavor.</p></CardContent></Card>
             </div>
             <Card className={cn(cardBase, 'mt-4')}>
               <CardContent className="p-6">
@@ -816,7 +999,7 @@ export default function App() {
               </Card>
               <div className="space-y-4">
                 <Card className={cardBase}><CardContent className="p-5"><div className="flex items-center gap-2 text-lg font-semibold"><CalendarDays className="h-5 w-5" /> Live dominant aspect</div><p className={cn('mt-2 text-sm leading-6', textMuted)}>{interpretations.transitSummary}</p></CardContent></Card>
-                <Card className={cardBase}><CardContent className="p-5"><div className="flex items-center gap-2 text-lg font-semibold"><ShieldAlert className="h-5 w-5" /> Guidance</div><p className={cn('mt-2 text-sm leading-6', textMuted)}>This dashboard is now dynamic and reusable. The next upgrade is a backend/API layer for timezone resolution, rising sign, houses, and sourced interpretive enrichment.</p></CardContent></Card>
+                <Card className={cardBase}><CardContent className="p-5"><div className="flex items-center gap-2 text-lg font-semibold"><ShieldAlert className="h-5 w-5" /> Accuracy</div><p className={cn('mt-2 text-sm leading-6', textMuted)}>{natal.accuracy}</p></CardContent></Card>
               </div>
             </div>
           </Section>
@@ -826,11 +1009,6 @@ export default function App() {
             const active = state.ui.activeDomainTab[domain] || 'now';
             const iconMap = { love: Heart, money: Coins, career: Briefcase };
             const Icon = iconMap[domain];
-            const dates = domain === 'money'
-              ? { best: ['May 11–19', 'Aug 28–Sep 6', 'Dec 10–18'], caution: ['Jun 21–27', 'Jul 26–Aug 2'] }
-              : domain === 'love'
-              ? { best: ['Apr 20–24', 'Aug 29–Sep 4', 'Nov 8–12'], caution: ['Jul 22–30', 'Oct 14–18'] }
-              : { best: ['Apr 16–22', 'Aug 25–Sep 5', 'Dec 12–20'], caution: ['Feb 18–24', 'Jul 24–31'] };
 
             return (
               <Section key={domain} id={domain} title={sectionTitle} subtitle={`${sectionTitle} now, across the year, and in shadow mode.`} darkMode={state.ui.darkMode}>
@@ -842,10 +1020,12 @@ export default function App() {
                   ))}
                 </div>
                 {active === 'now' && (
-                  <div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
-                    <Card className={cardBase}><CardContent className="p-6"><div className="flex items-center gap-3 text-2xl font-semibold"><Icon className="h-6 w-6" /> {sectionTitle} pulse</div><p className={cn('mt-4 leading-7', textMuted)}>{interpretations.domains[domain].now}</p></CardContent></Card>
-                    <Card className={cardBase}><CardContent className="p-6"><div className="text-lg font-semibold">Best / caution windows</div><div className="mt-4 space-y-3 text-sm"><div><div className="mb-1 text-emerald-300">Best dates</div><div className="flex flex-wrap gap-2">{dates.best.map((x) => <BadgePill key={x} className="bg-emerald-500/20 text-emerald-100">{x}</BadgePill>)}</div></div><div><div className="mb-1 text-rose-300">Caution dates</div><div className="flex flex-wrap gap-2">{dates.caution.map((x) => <BadgePill key={x} className="bg-rose-500/20 text-rose-100">{x}</BadgePill>)}</div></div></div></CardContent></Card>
-                  </div>
+                  <Card className={cardBase}>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3 text-2xl font-semibold"><Icon className="h-6 w-6" /> {sectionTitle} pulse</div>
+                      <p className={cn('mt-4 leading-7', textMuted)}>{interpretations.domains[domain].now}</p>
+                    </CardContent>
+                  </Card>
                 )}
                 {active === 'year' && <Card className={cardBase}><CardContent className="p-6"><p className={cn('leading-7', textMuted)}>{interpretations.domains[domain].year}</p></CardContent></Card>}
                 {active === 'shadow' && <Card className={cardBase}><CardContent className="p-6"><div className="text-xl font-semibold">Unfiltered warning</div><p className={cn('mt-3 leading-7', textMuted)}>{interpretations.domains[domain].shadow}</p></CardContent></Card>}
@@ -930,68 +1110,6 @@ export default function App() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </Section>
-
-          <Section id="tracker" title="Tracker" subtitle="A lightweight system for turning interpretation into practice." darkMode={state.ui.darkMode}>
-            <div className="grid gap-6 lg:grid-cols-[.95fr_1.05fr]">
-              <Card className={cardBase}>
-                <CardHeader>
-                  <CardTitle>State check-in</CardTitle>
-                  <CardDescription className={textMuted}>Local-only tracking stored in your browser.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {['energy', 'mood', 'clarity', 'discipline'].map((key) => (
-                    <div key={key}>
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="capitalize">{key}</span>
-                        <div className="flex gap-2">
-                          <MiniButton onClick={() => updateCheck(key, -1)}>-</MiniButton>
-                          <MiniButton onClick={() => updateCheck(key, 1)}>+</MiniButton>
-                        </div>
-                      </div>
-                      <Gauge label={key} value={state.tracker[key]} darkMode={state.ui.darkMode} />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <div className="space-y-4">
-                <Card className={cardBase}>
-                  <CardHeader>
-                    <CardTitle>Habits</CardTitle>
-                    <CardDescription className={textMuted}>Designed around the interpretation layer.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-3 sm:grid-cols-2">
-                    {[
-                      ['journal', 'Journal the truth'],
-                      ['movement', 'Move the body'],
-                      ['deepWork', 'One real deep work block'],
-                      ['meditation', 'Nervous system reset'],
-                      ['noImpulseSpend', 'No impulse money move'],
-                    ].map(([key, label]) => (
-                      <label key={key} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <span className="text-sm">{label}</span>
-                        <Toggle checked={state.tracker.habits[key]} onChange={(v) => updateHabit(key, v)} />
-                      </label>
-                    ))}
-                  </CardContent>
-                </Card>
-                <Card className={cardBase}>
-                  <CardHeader>
-                    <CardTitle>Notes</CardTitle>
-                    <CardDescription className={textMuted}>What happened today? What felt aligned, triggered, or revealing?</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <TextArea
-                      value={state.tracker.notes}
-                      onChange={(e) => setState((s) => ({ ...s, tracker: { ...s.tracker, notes: e.target.value } }))}
-                      placeholder="Write the real version, not the polished one."
-                      className="min-h-[180px]"
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
           </Section>
         </div>
       </div>
