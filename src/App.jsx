@@ -1006,7 +1006,7 @@ export default function App() {
   const chineseAnimal = getChineseAnimal(natal.chineseZodiac);
 
   return (
-    <div className={cn('min-h-screen transition-colors duration-300', themeShell)}>
+    <div className={cn('min-h-screen overflow-x-clip transition-colors duration-300', themeShell)}>
       <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
@@ -1061,15 +1061,15 @@ export default function App() {
           </button>
         </div>
 
-        <div className="sticky top-2 z-20 mt-3 overflow-x-auto pb-2 md:hidden [scrollbar-width:none]">
-          <div className={cn('inline-flex w-max gap-2 rounded-2xl border px-2 py-2 backdrop-blur-md', sectionBorder, state.ui.darkMode ? 'bg-black/25' : 'bg-white/80')}>
+        <div className="sticky top-2 z-20 mt-3 w-full pb-2 md:hidden">
+          <div className={cn('grid w-full grid-cols-3 gap-2 rounded-2xl border px-2 py-2 backdrop-blur-md', sectionBorder, state.ui.darkMode ? 'bg-black/25' : 'bg-white/80')}>
             {MOBILE_SECTIONS.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => jumpToSection(item.id)}
                 className={cn(
-                  'whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition',
+                  'min-w-0 truncate rounded-xl px-2 py-2.5 text-sm font-medium transition',
                   activeMobileSection === item.id
                     ? 'bg-fuchsia-500/35 text-white ring-1 ring-fuchsia-300/50'
                     : (state.ui.darkMode ? 'bg-white/10 text-white/80' : 'bg-slate-900/10 text-slate-700')
@@ -1136,19 +1136,32 @@ export default function App() {
               <Card className={cardBase}>
                 <CardHeader><CardTitle>Year contour</CardTitle><CardDescription className={textMuted}>A mobile-friendly heatmap of domain intensity.</CardDescription></CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="overflow-x-auto pb-1">
-                    <div className="min-w-[520px] space-y-3">
-                      {liveData.yearHeat.map((m) => (
-                        <div key={m.month} className="grid grid-cols-[42px_repeat(5,1fr)] items-center gap-2 text-xs md:text-sm">
-                          <div className={textMuted}>{m.month}</div>
-                          {['love', 'money', 'career', 'health', 'identity'].map((k) => {
-                            const v = m[k];
-                            return <div key={k} className={cn('rounded-xl px-2 py-2 text-center font-medium', state.ui.darkMode ? '' : 'text-slate-800')} style={{ background: `linear-gradient(90deg, rgba(244,114,182,.18), rgba(168,85,247,${v / 100}))` }}>{v}</div>;
-                          })}
-                        </div>
-                      ))}
-                      <div className={cn('grid grid-cols-[42px_repeat(5,1fr)] gap-2 text-[11px] uppercase tracking-[0.18em]', textMuted)}><div></div><div>Love</div><div>Money</div><div>Career</div><div>Health</div><div>Identity</div></div>
+                  <div className="space-y-3">
+                    <div className={cn('grid grid-cols-[42px_repeat(5,minmax(0,1fr))] gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]', textMuted)}>
+                      <div></div>
+                      <div className="text-center">Love</div>
+                      <div className="text-center">Money</div>
+                      <div className="text-center">Career</div>
+                      <div className="text-center">Health</div>
+                      <div className="text-center">Identity</div>
                     </div>
+                    {liveData.yearHeat.map((m) => (
+                      <div key={m.month} className="grid grid-cols-[42px_repeat(5,minmax(0,1fr))] items-center gap-2 text-xs md:text-sm">
+                        <div className={cn('font-medium', textMuted)}>{m.month}</div>
+                        {['love', 'money', 'career', 'health', 'identity'].map((k) => {
+                          const v = m[k];
+                          return (
+                            <div
+                              key={k}
+                              className={cn('rounded-xl px-1.5 py-2 text-center text-[11px] font-semibold sm:px-2 sm:text-xs', state.ui.darkMode ? '' : 'text-slate-800')}
+                              style={{ background: `linear-gradient(90deg, rgba(244,114,182,.18), rgba(168,85,247,${v / 100}))` }}
+                            >
+                              {v}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
