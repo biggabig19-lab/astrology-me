@@ -47,8 +47,8 @@ import {
 const APP_NAME = 'Astrology Me';
 const STORAGE_KEY = 'astrology-me-v5';
 const MOBILE_SECTIONS = [
-  { id: 'identity', label: 'Identity' },
   { id: 'overview', label: 'Overview' },
+  { id: 'identity', label: 'Identity' },
   { id: 'shadow', label: 'Shadow' },
   { id: 'forecast', label: 'Forecast' },
   { id: 'dates', label: 'Dates' },
@@ -872,15 +872,14 @@ export default function App() {
   const [state, setState] = usePersistedState();
   const [now, setNow] = useState(new Date());
   const [mobileSectionOpen, setMobileSectionOpen] = useState({
-    identity: true,
     overview: true,
-    convergence: false,
+    identity: true,
     shadow: false,
     forecast: true,
     dates: true,
     transits: false,
   });
-  const [activeMobileSection, setActiveMobileSection] = useState('identity');
+  const [activeMobileSection, setActiveMobileSection] = useState('overview');
   const forecastYear = now.getFullYear();
 
   useEffect(() => {
@@ -1092,14 +1091,6 @@ export default function App() {
         </div>
 
         <div className="mt-8 grid gap-10">
-          <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.identity} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, identity: !prev.identity }))}>
-            <div className="grid gap-4 md:grid-cols-3">
-              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerEmoji={identityEmoji('sun', natal.sunSign)} label={natal.sunSign} darkMode={state.ui.darkMode} />
-              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerEmoji={identityEmoji('nakshatra', natal.nakshatra.name)} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
-              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerEmoji={identityEmoji('chinese', natal.chineseZodiac)} label={natal.chineseZodiac} darkMode={state.ui.darkMode} />
-            </div>
-          </Section>
-
           <Section id="overview" title="Overview" subtitle="The app should feel like the user learned something real about themselves." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.overview} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, overview: !prev.overview }))}>
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
               <Card className={cardBase}>
@@ -1120,8 +1111,17 @@ export default function App() {
             </div>
           </Section>
 
-          <Section id="convergence" title="Where All Three Converge" subtitle="This is usually where the user recognizes themselves most strongly." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.convergence} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, convergence: !prev.convergence }))}>
-            <div className="grid gap-4">
+          <Section id="identity" title="Identity Trio" subtitle="Three systems, three cute identity stickers, one integrated portrait." darkMode={state.ui.darkMode} collapsibleMobile isOpen={mobileSectionOpen.identity} onToggle={() => setMobileSectionOpen((prev) => ({ ...prev, identity: !prev.identity }))}>
+            <div className="grid gap-4 md:grid-cols-3">
+              <IdentityCard title={`${natal.sunSign} Sun`} subtitle="Western identity core" stickerEmoji={identityEmoji('sun', natal.sunSign)} label={natal.sunSign} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.nakshatra.name} subtitle={`Nakshatra · Pada ${natal.nakshatra.pada}`} stickerEmoji={identityEmoji('nakshatra', natal.nakshatra.name)} label={natal.nakshatra.name} darkMode={state.ui.darkMode} />
+              <IdentityCard title={natal.chineseZodiac} subtitle="Chinese zodiac archetype" stickerEmoji={identityEmoji('chinese', natal.chineseZodiac)} label={natal.chineseZodiac} darkMode={state.ui.darkMode} />
+            </div>
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold md:text-xl">Where All Three Converge</h3>
+              <p className={cn('mt-1 text-sm', textMuted)}>This is usually where the user recognizes themselves most strongly.</p>
+            </div>
+            <div className="mt-4 grid gap-4">
               {interpretations.convergence.map((item) => (
                 <Card key={item.title} className={cardBase}><CardContent className="p-5"><div className="flex items-center gap-2 text-lg font-semibold"><Gem className="h-5 w-5 text-fuchsia-300" />{item.title}</div><p className={cn('mt-3 text-sm leading-7', textMuted)}>{item.body}</p></CardContent></Card>
               ))}
