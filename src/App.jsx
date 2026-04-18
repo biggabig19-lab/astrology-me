@@ -528,6 +528,54 @@ function usePersistedState() {
   return [state, setState];
 }
 
+function formatBirthDateInput(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  const month = digits.slice(0, 2);
+  const day = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+  if (digits.length <= 2) return month;
+  if (digits.length <= 4) return `${month}/${day}`;
+  return `${month}/${day}/${year}`;
+}
+
+function parseBirthDateToISO(value) {
+  const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  const year = Number(m[3]);
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  const dt = DateTime.fromObject({ year, month, day });
+  if (!dt.isValid) return null;
+  return dt.toFormat('yyyy-LL-dd');
+}
+
+function formatBirthTimeInput(value) {
+  const normalized = value.toUpperCase().replace(/[^0-9APM]/g, '');
+  const digits = normalized.replace(/[APM]/g, '').slice(0, 4);
+  const suffixRaw = normalized.replace(/[0-9]/g, '').slice(0, 2);
+  const hour = digits.slice(0, 2);
+  const minute = digits.slice(2, 4);
+  const suffix = suffixRaw.startsWith('A') ? 'AM' : suffixRaw.startsWith('P') ? 'PM' : suffixRaw;
+  let output = hour;
+  if (digits.length > 2) output += `:${minute}`;
+  if (suffix) output += ` ${suffix}`;
+  return output;
+}
+
+function parseBirthTimeTo24h(value) {
+  const m = value.match(/^(\d{1,2}):(\d{2})\s?(AM|PM)$/i);
+  if (!m) return null;
+  let hour = Number(m[1]);
+  const minute = Number(m[2]);
+  const ampm = m[3].toUpperCase();
+  if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null;
+  if (ampm === 'PM' && hour !== 12) hour += 12;
+  if (ampm === 'AM' && hour === 12) hour = 0;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
 function Card({ className = '', children }) {
   return <div className={className}>{children}</div>;
 }
@@ -676,10 +724,17 @@ function Landing({ onSubmit }) {
     setError('');
     setLoading(true);
     try {
+      const normalizedBirthDate = parseBirthDateToISO(form.birthDate);
+      if (!normalizedBirthDate) throw new Error('Use birth date format MM/DD/YYYY.');
+      const normalizedBirthTime = parseBirthTimeTo24h(form.birthTime);
+      if (!normalizedBirthTime) throw new Error('Use birth time format HH:MM AM or HH:MM PM.');
+
       let resolved = selectedLocation;
       if (!resolved) resolved = await resolveLocation(form.location);
       onSubmit({
         ...form,
+        birthDate: normalizedBirthDate,
+        birthTime: normalizedBirthTime,
         location: resolved.label,
         locationLabel: resolved.label,
         latitude: resolved.latitude,
@@ -694,7 +749,7 @@ function Landing({ onSubmit }) {
     }
   };
 
-  const disabled = !form.birthDate || !form.birthTime || !form.location;
+  const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(208,90,255,0.24),_transparent_30%),radial-gradient(circle_at_80%_20%,_rgba(255,185,91,0.26),_transparent_25%),linear-gradient(180deg,#100523_0%,#190b36_35%,#0b1225_100%)] px-4 py-8 text-white">
@@ -717,11 +772,23 @@ function Landing({ onSubmit }) {
               </div>
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth date</label>
-                <Input type="date" value={form.birthDate} onChange={(e) => update('birthDate', e.target.value)} />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="MM/DD/YYYY"
+                  value={form.birthDate}
+                  onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
+                />
               </div>
               <div>
                 <label className="mb-2 block text-sm text-white/80">Birth time</label>
-                <Input type="time" value={form.birthTime} onChange={(e) => update('birthTime', e.target.value)} />
+                <Input
+                  type="text"
+                  inputMode="text"
+                  placeholder="HH:MM AM"
+                  value={form.birthTime}
+                  onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
+                />
               </div>
               <div className="relative">
                 <label className="mb-2 block text-sm text-white/80">Birth location</label>
