@@ -779,21 +779,19 @@ function Landing({ onSubmit }) {
   const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_15%_12%,rgba(255,181,112,0.34),transparent_35%),radial-gradient(circle_at_85%_18%,rgba(255,132,96,0.26),transparent_28%),radial-gradient(circle_at_50%_100%,rgba(255,98,136,0.22),transparent_38%),linear-gradient(180deg,#22063b_0%,#2c0d3a_38%,#190d2d_100%)] px-4 py-10 text-white">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_15%_10%,_rgba(255,186,120,0.45),_transparent_34%),radial-gradient(circle_at_85%_20%,_rgba(255,125,93,0.35),_transparent_30%),radial-gradient(circle_at_50%_110%,_rgba(255,84,143,0.2),_transparent_45%),linear-gradient(180deg,#20062f_0%,#311047_42%,#1a1238_100%)] px-4 py-10 text-white">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 text-center">
-          <BadgePill className="bg-rose-400/20 text-rose-100">✨ {APP_NAME}</BadgePill>
-          <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic cutie profile.</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">
-            Drop in your birth details and we&apos;ll generate a playful, personal astrology portrait with real chart math under the hood.
-          </p>
+          <BadgePill className="bg-orange-300/20 text-orange-100">{APP_NAME}</BadgePill>
+          <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic profile ✨</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with eal chart math under the hood.</p>
         </div>
 
         <div className="mx-auto max-w-2xl">
-          <Card className="rounded-[2rem] border border-white/15 bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-md shadow-[0_30px_80px_rgba(255,130,90,0.16)]">
+          <Card className="rounded-[2.2rem] border border-orange-200/20 bg-gradient-to-br from-white/10 via-orange-300/10 to-rose-300/10 shadow-[0_20px_60px_rgba(255,136,77,0.16)] backdrop-blur-md">
             <CardHeader>
               <CardTitle>Start your chart</CardTitle>
-              <CardDescription className="text-white/70">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
+              <CardDescription className="text-white/75">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -847,7 +845,7 @@ function Landing({ onSubmit }) {
                 </div>
               )}
               {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
-              <button onClick={handleSubmit} disabled={disabled || loading} className="w-full rounded-2xl bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500 px-4 py-3 font-medium text-white disabled:opacity-50">
+              <button onClick={handleSubmit} disabled={disabled || loading} className="w-full rounded-2xl bg-gradient-to-r from-orange-400 via-rose-400 to-fuchsia-500 px-4 py-3 font-semibold text-white shadow-[0_10px_30px_rgba(255,138,76,0.35)] transition hover:brightness-105 disabled:opacity-50">
                 {loading ? 'Resolving location...' : 'Generate dashboard'}
               </button>
             </CardContent>
