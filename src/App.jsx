@@ -784,7 +784,7 @@ function Landing({ onSubmit }) {
         <div className="mb-8 text-center">
           <BadgePill className="bg-orange-300/20 text-orange-100">{APP_NAME}</BadgePill>
           <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic profile ✨</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with eal chart math under the hood.</p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.</p>
         </div>
 
         <div className="mx-auto max-w-2xl">
