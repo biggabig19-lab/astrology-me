@@ -896,8 +896,8 @@ function Landing({ onSubmit }) {
           }
           @media (max-width: 640px) {
             .landing-shell {
-              background-size: 165% auto, auto, auto, auto, auto !important;
-              background-position: center 8%, 10% 8%, 92% 16%, 50% 102%, center !important;
+              background-size: cover, auto, auto, auto, auto !important;
+              background-position: 58% center, 10% 8%, 92% 16%, 50% 102%, center !important;
             }
             .landing-content {
               justify-content: flex-start;
