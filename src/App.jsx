@@ -791,77 +791,230 @@ function Landing({ onSubmit }) {
   const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_15%_10%,_rgba(255,186,120,0.45),_transparent_34%),radial-gradient(circle_at_85%_20%,_rgba(255,125,93,0.35),_transparent_30%),radial-gradient(circle_at_50%_110%,_rgba(255,84,143,0.2),_transparent_45%),linear-gradient(180deg,#20062f_0%,#311047_42%,#1a1238_100%)] px-4 py-10 text-white">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 text-center">
-          <BadgePill className="bg-orange-300/20 text-orange-100">{APP_NAME}</BadgePill>
-          <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic profile ✨</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.</p>
+    <div
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        backgroundImage: "url('/114673.jpeg'), radial-gradient(circle at 15% 10%, rgba(255,186,120,0.45), transparent 34%), radial-gradient(circle at 85% 20%, rgba(255,125,93,0.35), transparent 30%), radial-gradient(circle at 50% 110%, rgba(255,84,143,0.2), transparent 45%), linear-gradient(180deg, #20062f 0%, #311047 42%, #1a1238 100%)",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to bottom, rgba(8,2,18,0.12) 0%, rgba(8,2,18,0.28) 50%, rgba(8,2,18,0.48) 100%)',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        className="landing-content"
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          minHeight: '100vh',
+          paddingBottom: '40px',
+          maxWidth: '560px',
+          margin: '0 auto',
+          padding: '0 16px',
+        }}
+      >
+        <style>{`
+          input::placeholder { color: rgba(255,255,255,0.35) !important; }
+          @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 4px 20px rgba(200,130,10,0.3); }
+            50% { box-shadow: 0 4px 32px rgba(200,130,10,0.65); }
+          }
+          .landing-heading {
+            max-width: 560px;
+            letter-spacing: 0.01em;
+          }
+          .landing-subtitle {
+            max-width: 540px;
+          }
+          .landing-form-card {
+            max-width: 500px;
+            width: 100%;
+            margin-top: 22px;
+          }
+          @media (max-width: 640px) {
+            .landing-heading {
+              max-width: 100%;
+            }
+            .landing-subtitle,
+            .landing-form-card {
+              max-width: 100%;
+            }
+          }
+        `}</style>
+        <div
+          style={{
+            marginTop: '32px',
+            alignSelf: 'center',
+            background: 'rgba(20,10,40,0.7)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '999px',
+            padding: '6px 18px',
+            fontSize: '13px',
+            color: 'white',
+            backdropFilter: 'blur(8px)',
+            fontFamily: "'Cinzel', Georgia, serif",
+          }}
+        >
+          {APP_NAME}
         </div>
-
-        <div className="mx-auto max-w-2xl">
-          <Card className="rounded-[2.2rem] border border-orange-200/20 bg-gradient-to-br from-white/10 via-orange-300/10 to-rose-300/10 shadow-[0_20px_60px_rgba(255,136,77,0.16)] backdrop-blur-md">
-            <CardHeader>
-              <CardTitle>Start your chart</CardTitle>
-              <CardDescription className="text-white/75">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Name or nickname</label>
-                <Input value={form.name} onChange={(e) => update('name', e.target.value)} />
+        <h1
+          className="landing-heading"
+          style={{
+            alignSelf: 'center',
+            textAlign: 'center',
+            color: 'white',
+            fontWeight: 700,
+            fontSize: 'clamp(22px, 3.2vw, 44px)',
+            lineHeight: 1.2,
+            marginTop: '12px',
+            transform: 'translateX(-40px)',
+            fontFamily: "'Cinzel', Georgia, serif",
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Let&apos;s build your cosmic profile✨
+        </h1>
+        <div
+          className="landing-form-card"
+          style={{
+            background: 'rgba(10,5,30,0.28)',
+            border: '1px solid rgba(255,255,255,0.24)',
+            borderRadius: '20px',
+            padding: '18px 16px',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+          }}
+        >
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
+            <UserRound style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
+            <input
+              type="text"
+              placeholder="Name or Nickname"
+              value={form.name}
+              onChange={(e) => update('name', e.target.value)}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              onFocus={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(255,255,255,0.12)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
+            <CalendarDays style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="MM/DD/YYYY"
+              value={form.birthDate}
+              onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              onFocus={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(255,255,255,0.12)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
+            <Clock3 style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
+            <input
+              type="text"
+              inputMode="text"
+              placeholder="HH:MM AM"
+              value={form.birthTime}
+              onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  update('birthTime', toggleBirthTimePeriod(form.birthTime));
+                }
+              }}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              onFocus={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(255,255,255,0.12)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
+            <MapPin style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
+            <input
+              type="text"
+              placeholder="Birth location"
+              value={form.location}
+              onChange={(e) => update('location', e.target.value)}
+              onFocus={(e) => {
+                if (suggestions.length) setSuggestionsOpen(true);
+                e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
+              }}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              onBlur={(e) => {
+                e.currentTarget.style.border = '1px solid rgba(255,255,255,0.12)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+            {suggestionsOpen && suggestions.length > 0 && (
+              <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
+                {suggestions.map((place, idx) => (
+                  <button key={`${place.label}-${idx}`} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => chooseSuggestion(place)} className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0">
+                    <div className="font-medium">{place.label}</div>
+                    <div className="mt-1 text-xs text-white/50">{place.timezone}</div>
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Birth date</label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="MM/DD/YYYY"
-                  value={form.birthDate}
-                  onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Birth time</label>
-                <Input
-                  type="text"
-                  inputMode="text"
-                  placeholder="HH:MM AM"
-                  value={form.birthTime}
-                  onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      update('birthTime', toggleBirthTimePeriod(form.birthTime));
-                    }
-                  }}
-                />
-              </div>
-              <div className="relative">
-                <label className="mb-2 block text-sm text-white/80">Birth location</label>
-                <Input value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
-                {suggestionsOpen && suggestions.length > 0 && (
-                  <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
-                    {suggestions.map((place, idx) => (
-                      <button key={`${place.label}-${idx}`} type="button" onClick={() => chooseSuggestion(place)} className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0">
-                        <div className="font-medium">{place.label}</div>
-                        <div className="mt-1 text-xs text-white/50">{place.timezone}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {selectedLocation && (
-                <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
-                  Using: <strong>{selectedLocation.label}</strong>
-                  <div className="mt-1 text-xs text-emerald-200/80">Timezone: {selectedLocation.timezone}</div>
-                </div>
-              )}
-              {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
-              <button onClick={handleSubmit} disabled={disabled || loading} className="w-full rounded-2xl bg-gradient-to-r from-orange-400 via-rose-400 to-fuchsia-500 px-4 py-3 font-semibold text-white shadow-[0_10px_30px_rgba(255,138,76,0.35)] transition hover:brightness-105 disabled:opacity-50">
-                {loading ? 'Resolving location...' : 'Generate dashboard'}
-              </button>
-            </CardContent>
-          </Card>
+            )}
+          </div>
+          {selectedLocation && (
+            <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+              Using: <strong>{selectedLocation.label}</strong>
+              <div className="mt-1 text-xs text-emerald-200/80">Timezone: {selectedLocation.timezone}</div>
+            </div>
+          )}
+          {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
+          <button
+            onClick={handleSubmit}
+            disabled={disabled || loading}
+            style={{
+              width: '100%',
+              height: '52px',
+              background: 'linear-gradient(135deg, #b8720a 0%, #e8a020 50%, #c8860a 100%)',
+              border: 'none',
+              borderRadius: '30px',
+              fontSize: '16px',
+              fontWeight: 700,
+              color: '#1a0a00',
+              fontFamily: "'Cinzel', Georgia, serif",
+              cursor: 'pointer',
+              marginTop: '4px',
+              opacity: disabled || loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? 'Resolving location...' : 'Start your chart'}
+          </button>
         </div>
       </div>
     </div>
