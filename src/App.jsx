@@ -896,11 +896,20 @@ function Landing({ onSubmit }) {
           }
           @media (max-width: 640px) {
             .landing-shell {
+              position: fixed;
+              inset: 0;
+              width: 100%;
+              min-height: 100dvh;
+              height: 100dvh;
+              overflow: hidden;
               background-image: url('/mobile.jpeg'), radial-gradient(circle at 15% 10%, rgba(255,186,120,0.45), transparent 34%), radial-gradient(circle at 85% 20%, rgba(255,125,93,0.35), transparent 30%), radial-gradient(circle at 50% 110%, rgba(255,84,143,0.2), transparent 45%), linear-gradient(180deg, #20062f 0%, #311047 42%, #1a1238 100%) !important;
               background-size: cover, auto, auto, auto, auto !important;
               background-position: center center, 10% 8%, 92% 16%, 50% 102%, center !important;
             }
             .landing-content {
+              min-height: 100%;
+              height: 100%;
+              overflow: hidden;
               justify-content: flex-start;
               padding-left: 12px !important;
               padding-right: 12px !important;
@@ -918,6 +927,7 @@ function Landing({ onSubmit }) {
               max-width: 100%;
             }
             .landing-form-card {
+              margin-top: 56px;
               border-radius: 18px !important;
               padding: 16px 14px !important;
             }
