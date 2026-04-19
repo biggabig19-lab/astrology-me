@@ -883,10 +883,6 @@ function Landing({ onSubmit }) {
         >
           Let&apos;s build your cosmic profile✨
         </h1>
-        <p className="landing-subtitle" style={{ textAlign: 'center', fontSize: 'clamp(14px, 1.4vw, 19px)', color: 'rgba(255,255,255,0.75)', margin: '10px auto 12px' }}>
-          Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.
-        </p>
-
         <div
           className="landing-form-card"
           style={{
