@@ -896,9 +896,6 @@ function Landing({ onSubmit }) {
           }}
         >
           <div style={{ fontSize: '18px', fontWeight: 700, color: 'white', marginBottom: '6px' }}>Start your chart</div>
-          <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '18px' }}>
-            Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.
-          </div>
           <div style={{ position: 'relative', marginBottom: '8px' }}>
             <UserRound style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
             <input
