@@ -108,3 +108,31 @@ No.
 - Your web app still works as normal.
 - Android packaging is an additional output from the same code.
 - You can keep web + Android together in this repo (recommended while learning).
+
+
+## Avoiding merge conflicts in Codex PRs
+
+If Codex PRs regularly conflict, it is usually because each PR is created from a branch that is not up to date with `main`, and because formatting changes are inconsistent across contributors.
+
+Use this workflow for each new PR:
+
+1. Update local `main` and create a fresh branch from it.
+2. Keep PRs small and focused (one concern per PR).
+3. Run `npm run format` before committing so file formatting stays deterministic.
+4. Rebase your branch onto latest `main` right before opening/merging the PR.
+
+Suggested command sequence:
+
+```bash
+git checkout main
+git pull --rebase origin main
+git checkout -b <feature-branch>
+# make changes
+npm run format
+git add -A
+git commit -m "..."
+git fetch origin
+git rebase origin/main
+```
+
+This repository includes `.editorconfig` and Prettier config to reduce whitespace/style-only conflicts.
