@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { DateTime } from 'luxon';
 import {
@@ -91,6 +91,27 @@ const BODY_GLYPHS = {
   Pluto: '♇',
 };
 
+const ZODIAC_GLYPH_MAP = {
+  Aries: '♈',
+  Taurus: '♉',
+  Gemini: '♊',
+  Cancer: '♋',
+  Leo: '♌',
+  Virgo: '♍',
+  Libra: '♎',
+  Scorpio: '♏',
+  Sagittarius: '♐',
+  Capricorn: '♑',
+  Aquarius: '♒',
+  Pisces: '♓',
+};
+
+const FIRE_SIGNS = new Set(['Aries', 'Leo', 'Sagittarius']);
+const EARTH_SIGNS = new Set(['Taurus', 'Virgo', 'Capricorn']);
+const AIR_SIGNS = new Set(['Gemini', 'Libra', 'Aquarius']);
+const CARDINAL_SIGNS = new Set(['Aries', 'Cancer', 'Libra', 'Capricorn']);
+const FIXED_SIGNS = new Set(['Taurus', 'Leo', 'Scorpio', 'Aquarius']);
+
 const defaultState = {
   profile: null,
   ui: {
@@ -141,23 +162,19 @@ function formatLongitude(longitude) {
 }
 
 function zodiacGlyph(sign) {
-  const map = {
-    Aries: '♈', Taurus: '♉', Gemini: '♊', Cancer: '♋', Leo: '♌', Virgo: '♍',
-    Libra: '♎', Scorpio: '♏', Sagittarius: '♐', Capricorn: '♑', Aquarius: '♒', Pisces: '♓',
-  };
-  return map[sign] || '✦';
+  return ZODIAC_GLYPH_MAP[sign] || '✦';
 }
 
 function elementForSign(sign) {
-  if (['Aries', 'Leo', 'Sagittarius'].includes(sign)) return 'Fire';
-  if (['Taurus', 'Virgo', 'Capricorn'].includes(sign)) return 'Earth';
-  if (['Gemini', 'Libra', 'Aquarius'].includes(sign)) return 'Air';
+  if (FIRE_SIGNS.has(sign)) return 'Fire';
+  if (EARTH_SIGNS.has(sign)) return 'Earth';
+  if (AIR_SIGNS.has(sign)) return 'Air';
   return 'Water';
 }
 
 function qualityForSign(sign) {
-  if (['Aries', 'Cancer', 'Libra', 'Capricorn'].includes(sign)) return 'Cardinal';
-  if (['Taurus', 'Leo', 'Scorpio', 'Aquarius'].includes(sign)) return 'Fixed';
+  if (CARDINAL_SIGNS.has(sign)) return 'Cardinal';
+  if (FIXED_SIGNS.has(sign)) return 'Fixed';
   return 'Mutable';
 }
 
@@ -415,16 +432,21 @@ function computeKeyDates(natal, forecastYear) {
   const jupiterMoon = findBestTransitDate(forecastYear, 'Jupiter', 'Moon', natal.placementMap.Moon.longitude);
   const marsMercury = findBestTransitDate(forecastYear, 'Mars', 'Mercury', natal.placementMap.Mercury.longitude);
 
-  const birthday = natal.localBirth.set({ year: forecastYear });
+  const rawBirthday = natal.localBirth.set({ year: forecastYear });
+  const birthday = rawBirthday.isValid ? rawBirthday : DateTime.fromObject(
+    { year: forecastYear, month: 2, day: 28, hour: natal.localBirth.hour, minute: natal.localBirth.minute },
+    { zone: natal.localBirth.zoneName }
+  );
   const birthdayPlusWeek = birthday.plus({ days: 8 });
+  const zone = natal.localBirth.zoneName;
 
   return [
     { date: birthday.toFormat('MMM d'), meaning: 'Birthday / solar reset — a personal turning point that tends to reveal what identity is becoming.' },
     { date: birthdayPlusWeek.toFormat('MMM d'), meaning: 'Post-birthday ignition window — themes started near the birthday often become more visible and active.' },
-    { date: DateTime.fromJSDate(saturnSun.date).toFormat('MMM d'), meaning: 'Saturn closest to natal Sun — structure, limits, responsibility, and maturity come to the forefront.' },
-    { date: DateTime.fromJSDate(neptuneSun.date).toFormat('MMM d'), meaning: 'Neptune strongest on natal Sun themes — heightened intuition, but also a need to verify what is real.' },
-    { date: DateTime.fromJSDate(jupiterMoon.date).toFormat('MMM d'), meaning: 'Jupiter strongest on the Moon — emotional expansion, broader perspective, and opportunities through inner honesty.' },
-    { date: DateTime.fromJSDate(marsMercury.date).toFormat('MMM d'), meaning: 'Mars strongest on Mercury — sharp speech, decisive thought, and the need to avoid overreactive communication.' },
+    { date: DateTime.fromJSDate(saturnSun.date, { zone }).toFormat('MMM d'), meaning: 'Saturn closest to natal Sun — structure, limits, responsibility, and maturity come to the forefront.' },
+    { date: DateTime.fromJSDate(neptuneSun.date, { zone }).toFormat('MMM d'), meaning: 'Neptune strongest on natal Sun themes — heightened intuition, but also a need to verify what is real.' },
+    { date: DateTime.fromJSDate(jupiterMoon.date, { zone }).toFormat('MMM d'), meaning: 'Jupiter strongest on the Moon — emotional expansion, broader perspective, and opportunities through inner honesty.' },
+    { date: DateTime.fromJSDate(marsMercury.date, { zone }).toFormat('MMM d'), meaning: 'Mars strongest on Mercury — sharp speech, decisive thought, and the need to avoid overreactive communication.' },
   ];
 }
 
@@ -535,7 +557,21 @@ function usePersistedState() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setState({ ...defaultState, ...JSON.parse(raw) });
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setState({
+          ...defaultState,
+          ...parsed,
+          ui: {
+            ...defaultState.ui,
+            ...(parsed?.ui || {}),
+            activeDomainTab: {
+              ...defaultState.ui.activeDomainTab,
+              ...(parsed?.ui?.activeDomainTab || {}),
+            },
+          },
+        });
+      }
     } catch {}
   }, []);
   useEffect(() => {
@@ -725,6 +761,7 @@ function Landing({ onSubmit }) {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const searchRequestRef = useRef(0);
 
   const update = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -738,12 +775,15 @@ function Landing({ onSubmit }) {
       setSuggestionsOpen(false);
       return;
     }
+    const requestId = ++searchRequestRef.current;
     const timer = setTimeout(async () => {
       try {
         const results = await searchLocations(query);
+        if (requestId !== searchRequestRef.current) return;
         setSuggestions(results);
         setSuggestionsOpen(true);
       } catch {
+        if (requestId !== searchRequestRef.current) return;
         setSuggestions([]);
         setSuggestionsOpen(false);
       }
@@ -788,7 +828,7 @@ function Landing({ onSubmit }) {
     }
   };
 
-  const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
+  const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location.trim();
 
   return (
     <div
@@ -1102,7 +1142,7 @@ export default function App() {
     }));
 
     const cosmicWeather = {
-      date: now.toLocaleString(),
+      date: DateTime.fromJSDate(now).setZone(state.profile.timezone).toFormat('ff'),
       moon: `${moon.sign} Moon`,
       phase: moon.phase != null ? `${Math.round(moon.phase * 100)}% illuminated` : 'Phase unavailable',
       dominant: strongest[0] ? `${strongest[0].planet} ${strongest[0].aspect} natal ${strongest[0].natal}` : 'Moderate sky',
@@ -1110,7 +1150,7 @@ export default function App() {
     };
 
     return { planets, strongest, orbMeters, shadowRadar, yearHeat, cosmicWeather };
-  }, [now, natal]);
+  }, [now, natal, state.profile?.timezone]);
 
   const keyDates = useMemo(() => {
     if (!natal) return [];
