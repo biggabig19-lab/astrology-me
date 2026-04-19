@@ -805,7 +805,7 @@ function Landing({ onSubmit }) {
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(to bottom, rgba(8,2,18,0.25) 0%, rgba(8,2,18,0.5) 50%, rgba(8,2,18,0.8) 100%)',
+          background: 'linear-gradient(to bottom, rgba(8,2,18,0.12) 0%, rgba(8,2,18,0.28) 50%, rgba(8,2,18,0.48) 100%)',
           zIndex: 0,
           pointerEvents: 'none',
         }}
@@ -887,11 +887,11 @@ function Landing({ onSubmit }) {
         <div
           className="landing-form-card"
           style={{
-            background: 'rgba(10,5,30,0.42)',
-            border: '1px solid rgba(255,255,255,0.18)',
+            background: 'rgba(10,5,30,0.28)',
+            border: '1px solid rgba(255,255,255,0.24)',
             borderRadius: '20px',
             padding: '18px 16px',
-            backdropFilter: 'blur(12px)',
+            backdropFilter: 'blur(10px)',
             boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
           }}
         >
