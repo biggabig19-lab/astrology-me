@@ -841,7 +841,7 @@ function Landing({ onSubmit }) {
           .landing-form-card {
             max-width: 500px;
             width: 100%;
-            margin-top: 2px;
+            margin-top: 22px;
           }
           @media (max-width: 640px) {
             .landing-heading {
@@ -895,7 +895,6 @@ function Landing({ onSubmit }) {
             boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
           }}
         >
-          <div style={{ fontSize: '18px', fontWeight: 700, color: 'white', marginBottom: '6px' }}>Start your chart</div>
           <div style={{ position: 'relative', marginBottom: '8px' }}>
             <UserRound style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
             <input
