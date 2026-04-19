@@ -12,8 +12,168 @@
     />
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-slate-950">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+  <body>
+    <div class="viewport">
+      <canvas id="star-canvas" aria-hidden="true"></canvas>
+
+      <div class="constellation" aria-hidden="true">
+        <svg viewBox="0 0 420 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g stroke="rgba(255,221,149,0.35)" stroke-width="1.2">
+            <path d="M270 100 L305 85 L336 95 L362 76" />
+            <path d="M264 172 L292 187 L318 171 L342 191" />
+          </g>
+          <g fill="rgba(255,221,149,0.9)">
+            <circle cx="270" cy="100" r="2" />
+            <circle cx="305" cy="85" r="2.2" />
+            <circle cx="336" cy="95" r="2" />
+            <circle cx="362" cy="76" r="2.4" />
+            <circle cx="264" cy="172" r="2" />
+            <circle cx="292" cy="187" r="2.1" />
+            <circle cx="318" cy="171" r="2" />
+            <circle cx="342" cy="191" r="2.2" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="cloud-bank" aria-hidden="true">
+        <div class="cloud one"></div>
+        <div class="cloud two"></div>
+        <div class="cloud three"></div>
+        <div class="cloud four"></div>
+      </div>
+
+      <main class="app-shell">
+        <img class="character char-aries" src="./assets/char-aries.png" alt="Aries character placeholder" />
+        <img class="character char-dragon" src="./assets/char-dragon.png" alt="Dragon character placeholder" />
+        <img class="character char-scorpio" src="./assets/char-scorpio.png" alt="Scorpio character placeholder" />
+        <img class="character char-female" src="./assets/char-female.png" alt="Female character placeholder" />
+        <img class="character char-shiva" src="./assets/char-shiva.png" alt="Shiva character placeholder" />
+
+        <section class="top">
+          <div class="badge">Astrology Me</div>
+          <h1>Let's build your<br />cosmic profile✨</h1>
+          <p class="subtitle">
+            Pop in your birth details and we'll generate a personal astrology portrait with real chart math under the hood.
+          </p>
+        </section>
+
+        <section class="form-wrap">
+          <form id="chart-form" class="card" novalidate>
+            <h2>Start your chart</h2>
+            <p class="helper">
+              Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.
+            </p>
+
+            <label class="field">
+              <span class="sr-only">Name or Nickname</span>
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z"/></svg>
+              </span>
+              <input type="text" name="name" placeholder="Name or Nickname" autocomplete="name" />
+            </label>
+
+            <label class="field">
+              <span class="sr-only">Birth date</span>
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h2v2h6V2h2v2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3V2zm13 8H4v10h16V10z"/></svg>
+              </span>
+              <input type="text" name="birthDate" placeholder="Birth date" inputmode="numeric" />
+              <span class="hint-right">MM/DD/YYYY&nbsp;&nbsp;AM</span>
+            </label>
+
+            <label class="field">
+              <span class="sr-only">Birth time</span>
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 7h2v6l5.2 3.12-1 1.72L11 14V7z"/><path d="M12 2a10 10 0 1 0 10 10A10.01 10.01 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg>
+              </span>
+              <input type="text" name="birthTime" placeholder="Birth time" />
+            </label>
+
+            <label class="field">
+              <span class="sr-only">Birth location</span>
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 14.5 9 2.5 2.5 0 0 1 12 11.5z"/></svg>
+              </span>
+              <input type="text" name="birthLocation" placeholder="Birth location" autocomplete="address-level2" />
+            </label>
+
+            <button class="cta" type="submit">Start your chart</button>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      (function () {
+        const STORAGE_KEY = 'astrology-me-v5';
+        const canvas = document.getElementById('star-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(window.innerWidth * dpr);
+          canvas.height = Math.floor(window.innerHeight * dpr);
+          canvas.style.width = window.innerWidth + 'px';
+          canvas.style.height = window.innerHeight + 'px';
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          drawStars();
+        }
+
+        function drawStars() {
+          const starCount = 200;
+          ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+          for (let i = 0; i < starCount; i += 1) {
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight;
+            const radius = 0.5 + Math.random();
+            const alpha = 0.3 + Math.random() * 0.7;
+
+            ctx.beginPath();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#ffffff';
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.globalAlpha = 1;
+        }
+
+        const form = document.getElementById('chart-form');
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+
+          const formData = new FormData(form);
+          const profile = {
+            name: String(formData.get('name') || '').trim(),
+            birthDate: String(formData.get('birthDate') || '').trim(),
+            birthTime: String(formData.get('birthTime') || '').trim(),
+            birthLocation: String(formData.get('birthLocation') || '').trim(),
+            savedAt: new Date().toISOString(),
+          };
+
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({
+              profile,
+              ui: {
+                darkMode: true,
+                activeDomainTab: { love: 'now', money: 'now', career: 'now' },
+              },
+            })
+          );
+
+          const button = form.querySelector('button[type="submit"]');
+          const previous = button.textContent;
+          button.textContent = 'Chart started ✨';
+          setTimeout(function () {
+            button.textContent = previous;
+          }, 1200);
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+      })();
+    </script>
   </body>
 </html>
