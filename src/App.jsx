@@ -836,7 +836,7 @@ function Landing({ onSubmit }) {
       style={{
         position: 'relative',
         minHeight: '100vh',
-        backgroundImage: "url('/114673.jpeg'), radial-gradient(circle at 15% 10%, rgba(255,186,120,0.45), transparent 34%), radial-gradient(circle at 85% 20%, rgba(255,125,93,0.35), transparent 30%), radial-gradient(circle at 50% 110%, rgba(255,84,143,0.2), transparent 45%), linear-gradient(180deg, #20062f 0%, #311047 42%, #1a1238 100%)",
+        backgroundImage: "url('/desktop.jpeg'), radial-gradient(circle at 15% 10%, rgba(255,186,120,0.45), transparent 34%), radial-gradient(circle at 85% 20%, rgba(255,125,93,0.35), transparent 30%), radial-gradient(circle at 50% 110%, rgba(255,84,143,0.2), transparent 45%), linear-gradient(180deg, #20062f 0%, #311047 42%, #1a1238 100%)",
         backgroundSize: 'cover, auto, auto, auto, auto',
         backgroundPosition: 'center top, 15% 10%, 85% 20%, 50% 110%, center',
         backgroundRepeat: 'no-repeat',
