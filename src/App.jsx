@@ -875,13 +875,14 @@ function Landing({ onSubmit }) {
             textAlign: 'center',
             color: 'white',
             fontWeight: 700,
-            fontSize: 'clamp(28px, 4.8vw, 56px)',
+            fontSize: 'clamp(22px, 3.2vw, 44px)',
             lineHeight: 1.2,
             marginTop: '12px',
             fontFamily: "'Cinzel', Georgia, serif",
+            whiteSpace: 'nowrap',
           }}
         >
-          Let&apos;s build your cosmic profile✨
+          Build your cosmic profile
         </h1>
         <div
           className="landing-form-card"
