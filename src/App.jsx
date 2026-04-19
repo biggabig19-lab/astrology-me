@@ -918,7 +918,7 @@ function Landing({ onSubmit }) {
               max-width: 100%;
             }
             .landing-form-card {
-              margin-top: 34px;
+              margin-top: 56px;
               border-radius: 18px !important;
               padding: 16px 14px !important;
             }
