@@ -918,10 +918,10 @@ function Landing({ onSubmit }) {
             <input
               type="text"
               inputMode="numeric"
-              placeholder="Birth date"
+              placeholder="MM/DD/YYYY"
               value={form.birthDate}
               onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
-              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 92px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
               onFocus={(e) => {
                 e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
@@ -931,14 +931,13 @@ function Landing({ onSubmit }) {
                 e.currentTarget.style.boxShadow = 'none';
               }}
             />
-            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: '12px', pointerEvents: 'none' }}>MM/DD/YYYY&nbsp;&nbsp;AM</span>
           </div>
           <div style={{ position: 'relative', marginBottom: '8px' }}>
             <Clock3 style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
             <input
               type="text"
               inputMode="text"
-              placeholder="Birth time"
+              placeholder="HH:MM AM"
               value={form.birthTime}
               onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
               onKeyDown={(e) => {
