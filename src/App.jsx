@@ -882,7 +882,7 @@ function Landing({ onSubmit }) {
             whiteSpace: 'nowrap',
           }}
         >
-          Build your cosmic profile
+          Let&apos;s build your cosmic profile✨
         </h1>
         <div
           className="landing-form-card"
@@ -1011,7 +1011,7 @@ function Landing({ onSubmit }) {
               opacity: disabled || loading ? 0.6 : 1,
             }}
           >
-            {loading ? 'Resolving location...' : 'Generate dashboard'}
+            {loading ? 'Resolving location...' : 'Start your chart'}
           </button>
         </div>
       </div>
