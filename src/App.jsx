@@ -832,12 +832,13 @@ function Landing({ onSubmit }) {
 
   return (
     <div
+      className="landing-shell"
       style={{
         position: 'relative',
         minHeight: '100vh',
         backgroundImage: "url('/114673.jpeg'), radial-gradient(circle at 15% 10%, rgba(255,186,120,0.45), transparent 34%), radial-gradient(circle at 85% 20%, rgba(255,125,93,0.35), transparent 30%), radial-gradient(circle at 50% 110%, rgba(255,84,143,0.2), transparent 45%), linear-gradient(180deg, #20062f 0%, #311047 42%, #1a1238 100%)",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center top',
+        backgroundSize: 'cover, auto, auto, auto, auto',
+        backgroundPosition: 'center top, 15% 10%, 85% 20%, 50% 110%, center',
         backgroundRepeat: 'no-repeat',
       }}
     >
@@ -874,6 +875,10 @@ function Landing({ onSubmit }) {
           .landing-heading {
             max-width: 560px;
             letter-spacing: 0.01em;
+            margin-left: auto;
+            margin-right: auto;
+            transform: none;
+            white-space: normal;
           }
           .landing-subtitle {
             max-width: 540px;
@@ -883,13 +888,38 @@ function Landing({ onSubmit }) {
             width: 100%;
             margin-top: 22px;
           }
+          @media (min-width: 1024px) {
+            .landing-shell {
+              background-size: cover, auto, auto, auto, auto !important;
+              background-position: center top, 15% 10%, 85% 20%, 50% 110%, center !important;
+            }
+          }
           @media (max-width: 640px) {
+            .landing-shell {
+              background-image: url('/mobile.png'), radial-gradient(circle at 15% 10%, rgba(255,186,120,0.45), transparent 34%), radial-gradient(circle at 85% 20%, rgba(255,125,93,0.35), transparent 30%), radial-gradient(circle at 50% 110%, rgba(255,84,143,0.2), transparent 45%), linear-gradient(180deg, #20062f 0%, #311047 42%, #1a1238 100%) !important;
+              background-size: cover, auto, auto, auto, auto !important;
+              background-position: center center, 10% 8%, 92% 16%, 50% 102%, center !important;
+            }
+            .landing-content {
+              justify-content: flex-start;
+              padding-left: 12px !important;
+              padding-right: 12px !important;
+            }
             .landing-heading {
               max-width: 100%;
+              font-size: clamp(24px, 8vw, 32px) !important;
+              line-height: 1.28 !important;
+              white-space: normal !important;
+              transform: none !important;
+              padding: 0 6px;
             }
             .landing-subtitle,
             .landing-form-card {
               max-width: 100%;
+            }
+            .landing-form-card {
+              border-radius: 18px !important;
+              padding: 16px 14px !important;
             }
           }
         `}</style>
@@ -919,9 +949,7 @@ function Landing({ onSubmit }) {
             fontSize: 'clamp(22px, 3.2vw, 44px)',
             lineHeight: 1.2,
             marginTop: '12px',
-            transform: 'translateX(-40px)',
             fontFamily: "'Cinzel', Georgia, serif",
-            whiteSpace: 'nowrap',
           }}
         >
           Let&apos;s build your cosmic profile✨
