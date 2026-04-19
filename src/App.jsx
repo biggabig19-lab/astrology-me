@@ -811,6 +811,7 @@ function Landing({ onSubmit }) {
         }}
       />
       <div
+        className="landing-content"
         style={{
           position: 'relative',
           zIndex: 1,
@@ -819,7 +820,7 @@ function Landing({ onSubmit }) {
           alignItems: 'center',
           minHeight: '100vh',
           paddingBottom: '40px',
-          maxWidth: '420px',
+          maxWidth: '560px',
           margin: '0 auto',
           padding: '0 16px',
         }}
@@ -829,6 +830,27 @@ function Landing({ onSubmit }) {
           @keyframes pulseGlow {
             0%, 100% { box-shadow: 0 4px 20px rgba(200,130,10,0.3); }
             50% { box-shadow: 0 4px 32px rgba(200,130,10,0.65); }
+          }
+          .landing-heading {
+            max-width: 560px;
+            letter-spacing: 0.01em;
+          }
+          .landing-subtitle {
+            max-width: 540px;
+          }
+          .landing-form-card {
+            max-width: 500px;
+            width: 100%;
+            margin-top: 2px;
+          }
+          @media (max-width: 640px) {
+            .landing-heading {
+              max-width: 100%;
+            }
+            .landing-subtitle,
+            .landing-form-card {
+              max-width: 100%;
+            }
           }
         `}</style>
         <div
@@ -848,11 +870,12 @@ function Landing({ onSubmit }) {
           {APP_NAME}
         </div>
         <h1
+          className="landing-heading"
           style={{
             textAlign: 'center',
             color: 'white',
             fontWeight: 700,
-            fontSize: 'clamp(28px, 7vw, 38px)',
+            fontSize: 'clamp(28px, 4.8vw, 56px)',
             lineHeight: 1.2,
             marginTop: '12px',
             fontFamily: "'Cinzel', Georgia, serif",
@@ -860,33 +883,33 @@ function Landing({ onSubmit }) {
         >
           Let&apos;s build your cosmic profile✨
         </h1>
-        <p style={{ textAlign: 'center', fontSize: '14px', color: 'rgba(255,255,255,0.65)', maxWidth: '300px', margin: '10px auto 20px' }}>
+        <p className="landing-subtitle" style={{ textAlign: 'center', fontSize: 'clamp(14px, 1.4vw, 19px)', color: 'rgba(255,255,255,0.75)', margin: '10px auto 12px' }}>
           Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.
         </p>
 
         <div
+          className="landing-form-card"
           style={{
-            background: 'rgba(10,5,30,0.62)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(10,5,30,0.42)',
+            border: '1px solid rgba(255,255,255,0.18)',
             borderRadius: '20px',
-            padding: '24px 20px',
-            backdropFilter: 'blur(16px)',
+            padding: '18px 16px',
+            backdropFilter: 'blur(12px)',
             boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
-            width: '100%',
           }}
         >
           <div style={{ fontSize: '18px', fontWeight: 700, color: 'white', marginBottom: '6px' }}>Start your chart</div>
           <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '18px' }}>
             Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.
           </div>
-          <div style={{ position: 'relative', marginBottom: '10px' }}>
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
             <UserRound style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
             <input
               type="text"
               placeholder="Name or Nickname"
               value={form.name}
               onChange={(e) => update('name', e.target.value)}
-              style={{ width: '100%', height: '50px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
               onFocus={(e) => {
                 e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
@@ -897,7 +920,7 @@ function Landing({ onSubmit }) {
               }}
             />
           </div>
-          <div style={{ position: 'relative', marginBottom: '10px' }}>
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
             <CalendarDays style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
             <input
               type="text"
@@ -905,7 +928,7 @@ function Landing({ onSubmit }) {
               placeholder="Birth date"
               value={form.birthDate}
               onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
-              style={{ width: '100%', height: '50px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', padding: '0 92px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 92px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
               onFocus={(e) => {
                 e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
@@ -917,7 +940,7 @@ function Landing({ onSubmit }) {
             />
             <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: '12px', pointerEvents: 'none' }}>MM/DD/YYYY&nbsp;&nbsp;AM</span>
           </div>
-          <div style={{ position: 'relative', marginBottom: '10px' }}>
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
             <Clock3 style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
             <input
               type="text"
@@ -931,7 +954,7 @@ function Landing({ onSubmit }) {
                   update('birthTime', toggleBirthTimePeriod(form.birthTime));
                 }
               }}
-              style={{ width: '100%', height: '50px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
               onFocus={(e) => {
                 e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
@@ -942,7 +965,7 @@ function Landing({ onSubmit }) {
               }}
             />
           </div>
-          <div style={{ position: 'relative', marginBottom: '10px' }}>
+          <div style={{ position: 'relative', marginBottom: '8px' }}>
             <MapPin style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
             <input
               type="text"
@@ -954,7 +977,7 @@ function Landing({ onSubmit }) {
                 e.currentTarget.style.border = '1px solid rgba(232,160,32,0.5)';
                 e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,160,32,0.15)';
               }}
-              style={{ width: '100%', height: '50px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
+              style={{ width: '100%', height: '46px', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '0 16px 0 44px', color: 'white', fontSize: '14px', outline: 'none' }}
               onBlur={(e) => {
                 e.currentTarget.style.border = '1px solid rgba(255,255,255,0.12)';
                 e.currentTarget.style.boxShadow = 'none';
