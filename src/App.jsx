@@ -879,7 +879,7 @@ function Landing({ onSubmit }) {
             fontSize: 'clamp(22px, 3.2vw, 44px)',
             lineHeight: 1.2,
             marginTop: '12px',
-            marginLeft: '-32px',
+            transform: 'translateX(-40px)',
             fontFamily: "'Cinzel', Georgia, serif",
             whiteSpace: 'nowrap',
           }}
