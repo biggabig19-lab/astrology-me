@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { DateTime } from 'luxon';
 import {
@@ -725,6 +725,7 @@ function Landing({ onSubmit }) {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const starCanvasRef = useRef(null);
 
   const update = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -750,6 +751,42 @@ function Landing({ onSubmit }) {
     }, 250);
     return () => clearTimeout(timer);
   }, [form.location]);
+
+  useEffect(() => {
+    const canvas = starCanvasRef.current;
+    if (!canvas) return undefined;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+
+    const drawStars = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      for (let i = 0; i < 200; i += 1) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const radius = 0.5 + Math.random();
+        const alpha = 0.3 + Math.random() * 0.7;
+        ctx.beginPath();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#ffffff';
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    };
+
+    drawStars();
+    window.addEventListener('resize', drawStars);
+    return () => window.removeEventListener('resize', drawStars);
+  }, []);
 
   const chooseSuggestion = (place) => {
     setForm((f) => ({ ...f, location: place.label }));
@@ -791,85 +828,160 @@ function Landing({ onSubmit }) {
   const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_16%_8%,_rgba(253,180,100,0.44),_transparent_22%),radial-gradient(circle_at_84%_20%,_rgba(255,123,74,0.3),_transparent_28%),radial-gradient(circle_at_50%_100%,_rgba(152,87,255,0.22),_transparent_38%),linear-gradient(180deg,#0f0626_0%,#1b0a35_35%,#12081f_100%)] px-4 py-10 text-white">
-      <div className="pointer-events-none absolute inset-0 opacity-80 [background-image:radial-gradient(circle,_rgba(255,219,169,0.9)_0.7px,transparent_0.8px)] [background-size:26px_26px]" />
-      <div className="pointer-events-none absolute -top-28 left-[8%] h-72 w-72 rounded-full bg-orange-400/25 blur-[100px]" />
-      <div className="pointer-events-none absolute right-[6%] top-24 h-80 w-80 rounded-full bg-rose-500/20 blur-[120px]" />
-      <div className="pointer-events-none absolute -bottom-16 left-1/2 h-64 w-[30rem] -translate-x-1/2 rounded-full bg-fuchsia-500/15 blur-[120px]" />
+    <div className="landing-shell">
+      <style>{`
+        .landing-shell {
+          --bg-deep: #080212;
+          --bg-mid: #1a0535;
+          --card-bg: rgba(10, 5, 30, 0.62);
+          --card-border: rgba(255, 255, 255, 0.1);
+          --input-bg: rgba(255, 255, 255, 0.06);
+          --input-border: rgba(255, 255, 255, 0.12);
+          --btn-gold-start: #b8720a;
+          --btn-gold-mid: #e8a020;
+          --btn-gold-end: #c8860a;
+          --btn-text: #1a0a00;
+          --text-primary: #ffffff;
+          --text-muted: rgba(255, 255, 255, 0.65);
+          --text-faint: rgba(255, 255, 255, 0.35);
+          --text-icon: rgba(255, 255, 255, 0.45);
+          --font-display: 'Cinzel', 'Georgia', serif;
+          --font-body: 'Inter', 'Helvetica Neue', sans-serif;
+          --radius-card: 20px;
+          --radius-input: 12px;
+          --radius-pill: 999px;
+          position: relative;
+          min-height: 100vh;
+          overflow: hidden;
+          background: radial-gradient(circle at center, var(--bg-mid) 0%, var(--bg-deep) 68%);
+          font-family: var(--font-body);
+          color: var(--text-primary);
+        }
+        .landing-shell .landing-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .landing-shell .landing-clouds { position: absolute; left: 0; right: 0; bottom: -80px; height: 40vh; z-index: 2; pointer-events: none; }
+        .landing-shell .landing-cloud { position: absolute; border-radius: 999px; filter: blur(40px); }
+        .landing-shell .landing-cloud.one { width: 75%; height: 160px; left: -12%; bottom: 12%; background: rgba(80, 20, 120, 0.3); }
+        .landing-shell .landing-cloud.two { width: 68%; height: 170px; left: 20%; bottom: 8%; background: rgba(120, 40, 160, 0.2); }
+        .landing-shell .landing-cloud.three { width: 54%; height: 150px; right: -12%; bottom: 18%; background: rgba(80, 20, 120, 0.3); }
+        .landing-shell .landing-cloud.four { width: 60%; height: 120px; left: 10%; bottom: 34%; background: rgba(120, 40, 160, 0.2); }
+        .landing-shell .landing-wrap { position: relative; width: min(100%, 420px); min-height: 100vh; margin: 0 auto; padding: 18px 16px 24px; display: flex; flex-direction: column; z-index: 4; }
+        .landing-shell .landing-badge { align-self: center; padding: 6px 18px; border-radius: var(--radius-pill); border: 1px solid rgba(255,255,255,0.2); background: rgba(20, 10, 40, 0.7); color: var(--text-primary); font-size: 13px; font-family: var(--font-display); backdrop-filter: blur(8px); }
+        .landing-shell h1 { margin: 12px auto 0; max-width: 330px; text-align: center; font-family: var(--font-display); font-size: clamp(28px, 7vw, 38px); font-weight: 700; line-height: 1.2; color: var(--text-primary); }
+        .landing-shell .landing-subtitle { max-width: 300px; margin: 10px auto 0; text-align: center; color: var(--text-muted); font-size: 14px; line-height: 1.45; }
+        .landing-shell .landing-card { margin-top: auto; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-card); padding: 24px 20px; backdrop-filter: blur(16px); box-shadow: 0 8px 40px rgba(0,0,0,0.5); z-index: 8; }
+        .landing-shell .landing-card h2 { margin: 0 0 6px; font-size: 18px; font-weight: 700; color: var(--text-primary); }
+        .landing-shell .landing-helper { margin: 0 0 18px; color: rgba(255,255,255,0.5); font-size: 12px; line-height: 1.45; }
+        .landing-shell .landing-field { position: relative; margin-bottom: 10px; }
+        .landing-shell .landing-input { width: 100%; height: 50px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: var(--radius-input); color: var(--text-primary); font-size: 14px; padding: 0 16px 0 44px; font-family: var(--font-body); outline: none; }
+        .landing-shell .landing-input::placeholder { color: var(--text-faint); }
+        .landing-shell .landing-input:focus { border-color: rgba(232,160,32,0.5); box-shadow: 0 0 0 3px rgba(232,160,32,0.15); }
+        .landing-shell .landing-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-icon); width: 18px; height: 18px; z-index: 2; }
+        .landing-shell .landing-hint { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.3); font-size: 12px; pointer-events: none; }
+        .landing-shell .landing-cta { width: 100%; height: 52px; margin-top: 6px; border: none; border-radius: 30px; font-size: 16px; font-weight: 700; font-family: var(--font-display); color: var(--btn-text); cursor: pointer; background: linear-gradient(135deg, var(--btn-gold-start) 0%, var(--btn-gold-mid) 50%, var(--btn-gold-end) 100%); box-shadow: 0 4px 20px rgba(200,130,10,0.4); animation: landingGlowPulse 2s ease-in-out infinite; transition: transform .2s ease, filter .2s ease; }
+        .landing-shell .landing-cta:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .landing-shell .landing-cta:disabled { opacity: .55; cursor: not-allowed; }
+        .landing-shell .landing-suggestions { position: absolute; z-index: 30; margin-top: 8px; width: 100%; max-height: 240px; overflow: auto; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(8,2,18,.95); backdrop-filter: blur(8px); }
+        .landing-shell .landing-suggestion { width: 100%; border: 0; border-bottom: 1px solid rgba(255,255,255,.06); background: transparent; color: var(--text-primary); padding: 12px 14px; text-align: left; }
+        .landing-shell .landing-suggestion:last-child { border-bottom: 0; }
+        .landing-shell .landing-suggestion:hover { background: rgba(255,255,255,.1); }
+        .landing-shell .landing-status { border-radius: 12px; padding: 10px 12px; font-size: 13px; margin-bottom: 10px; }
+        .landing-shell .landing-status.ok { border: 1px solid rgba(16,185,129,.35); background: rgba(16,185,129,.15); color: #d1fae5; }
+        .landing-shell .landing-status.err { border: 1px solid rgba(251,113,133,.35); background: rgba(251,113,133,.15); color: #ffe4e6; }
+        .landing-shell .landing-char { position: absolute; pointer-events: none; z-index: 3; }
+        .landing-shell .landing-char.aries { width: 140px; top: 60px; left: -20px; }
+        .landing-shell .landing-char.dragon { width: 160px; top: 40px; right: -30px; }
+        .landing-shell .landing-char.scorpio { width: 120px; bottom: 80px; left: -10px; }
+        .landing-shell .landing-char.female { width: 130px; bottom: 60px; right: -20px; }
+        .landing-shell .landing-char.shiva { width: 130px; bottom: -20px; left: 50%; transform: translateX(-50%); z-index: 5; }
+        @keyframes landingGlowPulse {
+          0%, 100% { box-shadow: 0 4px 20px rgba(200,130,10,0.3); }
+          50% { box-shadow: 0 8px 28px rgba(200,130,10,0.6); }
+        }
+      `}</style>
 
-      <div className="relative mx-auto max-w-3xl">
-        <div className="mb-8 text-center">
-          <BadgePill className="border border-white/10 bg-white/10 text-orange-100 shadow-[0_8px_28px_rgba(0,0,0,0.35)]">{APP_NAME}</BadgePill>
-          <h1 className="mt-4 bg-gradient-to-b from-amber-100 via-orange-100 to-amber-200 bg-clip-text text-4xl font-semibold leading-tight text-transparent drop-shadow-[0_5px_16px_rgba(0,0,0,0.55)] md:text-6xl">Let&apos;s build your cosmic profile ✨</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-white/80 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.</p>
-          <div className="mx-auto mt-5 h-px w-full max-w-2xl bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-        </div>
+      <canvas ref={starCanvasRef} className="landing-canvas" aria-hidden="true" />
+      <div className="landing-clouds" aria-hidden="true">
+        <div className="landing-cloud one" />
+        <div className="landing-cloud two" />
+        <div className="landing-cloud three" />
+        <div className="landing-cloud four" />
+      </div>
 
-        <div className="mx-auto max-w-2xl">
-          <Card className="rounded-[2.2rem] border border-orange-100/35 bg-[linear-gradient(150deg,rgba(255,255,255,0.14)_0%,rgba(255,179,109,0.14)_34%,rgba(41,22,70,0.35)_100%)] shadow-[0_28px_80px_rgba(7,2,19,0.72),inset_0_0_0_1px_rgba(255,225,185,0.2)] backdrop-blur-md">
-            <CardHeader>
-              <CardTitle className="text-3xl text-orange-50 drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]">Start your chart</CardTitle>
-              <CardDescription className="text-white/85">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Name or nickname</label>
-                <Input className="border-orange-100/30 bg-slate-950/45 text-orange-50 placeholder:text-orange-100/45" value={form.name} onChange={(e) => update('name', e.target.value)} />
+      <div className="landing-wrap">
+        <img className="landing-char aries" src="./assets/char-aries.png" alt="" />
+        <img className="landing-char dragon" src="./assets/char-dragon.png" alt="" />
+        <img className="landing-char scorpio" src="./assets/char-scorpio.png" alt="" />
+        <img className="landing-char female" src="./assets/char-female.png" alt="" />
+        <img className="landing-char shiva" src="./assets/char-shiva.png" alt="" />
+
+        <div className="landing-badge">{APP_NAME}</div>
+        <h1>Let&apos;s build your<br />cosmic profile✨</h1>
+        <p className="landing-subtitle">Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.</p>
+
+        <div className="landing-card">
+          <h2>Start your chart</h2>
+          <p className="landing-helper">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</p>
+
+          <div className="landing-field">
+            <UserRound className="landing-icon" />
+            <input className="landing-input" placeholder="Name or Nickname" value={form.name} onChange={(e) => update('name', e.target.value)} />
+          </div>
+
+          <div className="landing-field">
+            <CalendarDays className="landing-icon" />
+            <input
+              className="landing-input"
+              placeholder="Birth date"
+              inputMode="numeric"
+              value={form.birthDate}
+              onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
+            />
+            <span className="landing-hint">MM/DD/YYYY &nbsp; AM</span>
+          </div>
+
+          <div className="landing-field">
+            <Clock3 className="landing-icon" />
+            <input
+              className="landing-input"
+              placeholder="Birth time"
+              value={form.birthTime}
+              onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  update('birthTime', toggleBirthTimePeriod(form.birthTime));
+                }
+              }}
+            />
+          </div>
+
+          <div className="landing-field">
+            <MapPin className="landing-icon" />
+            <input
+              className="landing-input"
+              placeholder="Birth location"
+              value={form.location}
+              onChange={(e) => update('location', e.target.value)}
+              onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }}
+            />
+            {suggestionsOpen && suggestions.length > 0 && (
+              <div className="landing-suggestions">
+                {suggestions.map((place, idx) => (
+                  <button key={`${place.label}-${idx}`} type="button" onClick={() => chooseSuggestion(place)} className="landing-suggestion">
+                    <div>{place.label}</div>
+                    <div className="mt-1 text-xs text-white/55">{place.timezone}</div>
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Birth date</label>
-                <Input
-                  className="border-orange-100/30 bg-slate-950/45 text-orange-50 placeholder:text-orange-100/45"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="MM/DD/YYYY"
-                  value={form.birthDate}
-                  onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Birth time</label>
-                <Input
-                  className="border-orange-100/30 bg-slate-950/45 text-orange-50 placeholder:text-orange-100/45"
-                  type="text"
-                  inputMode="text"
-                  placeholder="HH:MM AM"
-                  value={form.birthTime}
-                  onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      update('birthTime', toggleBirthTimePeriod(form.birthTime));
-                    }
-                  }}
-                />
-              </div>
-              <div className="relative">
-                <label className="mb-2 block text-sm text-white/80">Birth location</label>
-                <Input className="border-orange-100/30 bg-slate-950/45 text-orange-50 placeholder:text-orange-100/45" value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
-                {suggestionsOpen && suggestions.length > 0 && (
-                  <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-orange-100/20 bg-[#140b27]/95 shadow-2xl backdrop-blur-md">
-                    {suggestions.map((place, idx) => (
-                      <button key={`${place.label}-${idx}`} type="button" onClick={() => chooseSuggestion(place)} className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0">
-                        <div className="font-medium">{place.label}</div>
-                        <div className="mt-1 text-xs text-white/50">{place.timezone}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {selectedLocation && (
-                <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
-                  Using: <strong>{selectedLocation.label}</strong>
-                  <div className="mt-1 text-xs text-emerald-200/80">Timezone: {selectedLocation.timezone}</div>
-                </div>
-              )}
-              {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
-              <button onClick={handleSubmit} disabled={disabled || loading} className="w-full rounded-2xl border border-orange-100/45 bg-gradient-to-r from-[#b96a2e] via-[#d08945] to-[#a0602e] px-4 py-3 text-lg font-semibold text-orange-50 shadow-[0_12px_32px_rgba(54,24,2,0.52),inset_0_0_10px_rgba(255,232,181,0.2)] transition hover:brightness-110 disabled:opacity-50">
-                {loading ? 'Resolving location...' : 'Generate dashboard'}
-              </button>
-            </CardContent>
-          </Card>
+            )}
+          </div>
+
+          {selectedLocation && <div className="landing-status ok">Using <strong>{selectedLocation.label}</strong> · {selectedLocation.timezone}</div>}
+          {error ? <div className="landing-status err">{error}</div> : null}
+
+          <button type="button" onClick={handleSubmit} disabled={disabled || loading} className="landing-cta">
+            {loading ? 'Resolving location...' : 'Start your chart'}
+          </button>
         </div>
       </div>
     </div>
