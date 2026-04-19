@@ -722,6 +722,7 @@ function Landing({ onSubmit }) {
   const [form, setForm] = useState({ name: '', birthDate: '', birthTime: '', location: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [focusedInput, setFocusedInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -789,84 +790,235 @@ function Landing({ onSubmit }) {
   };
 
   const disabled = !parseBirthDateToISO(form.birthDate) || !parseBirthTimeTo24h(form.birthTime) || !form.location;
+  const baseInputStyle = {
+    width: '100%',
+    height: '50px',
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: '12px',
+    padding: '0 16px 0 44px',
+    color: 'white',
+    fontSize: '14px',
+    outline: 'none',
+    fontFamily: "'Inter', sans-serif",
+  };
+  const getInputStyle = (field) => (
+    focusedInput === field
+      ? { ...baseInputStyle, border: '1px solid rgba(232,160,32,0.5)', boxShadow: '0 0 0 3px rgba(232,160,32,0.15)' }
+      : baseInputStyle
+  );
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_15%_10%,_rgba(255,186,120,0.45),_transparent_34%),radial-gradient(circle_at_85%_20%,_rgba(255,125,93,0.35),_transparent_30%),radial-gradient(circle_at_50%_110%,_rgba(255,84,143,0.2),_transparent_45%),linear-gradient(180deg,#20062f_0%,#311047_42%,#1a1238_100%)] px-4 py-10 text-white">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 text-center">
-          <BadgePill className="bg-orange-300/20 text-orange-100">{APP_NAME}</BadgePill>
-          <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-6xl">Let&apos;s build your cosmic profile ✨</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/75 md:text-base">Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.</p>
+    <div
+      style={{
+        position: 'relative',
+        backgroundImage: "url('/114673.jpeg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
+        minHeight: '100vh',
+      }}
+    >
+      <style>{`
+        .landing-input::placeholder { color: rgba(255,255,255,0.35); }
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 4px 20px rgba(200,130,10,0.3); }
+          50% { box-shadow: 0 4px 32px rgba(200,130,10,0.65); }
+        }
+      `}</style>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to bottom, rgba(8,2,18,0.25) 0%, rgba(8,2,18,0.5) 50%, rgba(8,2,18,0.8) 100%)',
+          zIndex: 0,
+        }}
+      />
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          minHeight: '100vh',
+          paddingBottom: '40px',
+          maxWidth: '420px',
+          margin: '0 auto',
+          padding: '0 16px',
+        }}
+      >
+        <div
+          style={{
+            marginTop: '32px',
+            display: 'inline-block',
+            alignSelf: 'center',
+            background: 'rgba(20,10,40,0.7)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '999px',
+            padding: '6px 18px',
+            fontSize: '13px',
+            color: 'white',
+            backdropFilter: 'blur(8px)',
+            fontFamily: "'Cinzel', Georgia, serif",
+          }}
+        >
+          Astrology Me
         </div>
+        <h1
+          style={{
+            textAlign: 'center',
+            color: 'white',
+            fontWeight: 700,
+            fontSize: 'clamp(28px, 7vw, 38px)',
+            lineHeight: 1.2,
+            marginTop: '12px',
+            fontFamily: "'Cinzel', Georgia, serif",
+          }}
+        >
+          Let&apos;s build your cosmic profile✨
+        </h1>
+        <p
+          style={{
+            textAlign: 'center',
+            fontSize: '14px',
+            color: 'rgba(255,255,255,0.65)',
+            maxWidth: '300px',
+            margin: '10px auto 20px',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          Pop in your birth details and we&apos;ll generate a personal astrology portrait with real chart math under the hood.
+        </p>
 
-        <div className="mx-auto max-w-2xl">
-          <Card className="rounded-[2.2rem] border border-orange-200/20 bg-gradient-to-br from-white/10 via-orange-300/10 to-rose-300/10 shadow-[0_20px_60px_rgba(255,136,77,0.16)] backdrop-blur-md">
-            <CardHeader>
-              <CardTitle>Start your chart</CardTitle>
-              <CardDescription className="text-white/75">Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Name or nickname</label>
-                <Input value={form.name} onChange={(e) => update('name', e.target.value)} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Birth date</label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="MM/DD/YYYY"
-                  value={form.birthDate}
-                  onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-white/80">Birth time</label>
-                <Input
-                  type="text"
-                  inputMode="text"
-                  placeholder="HH:MM AM"
-                  value={form.birthTime}
-                  onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      update('birthTime', toggleBirthTimePeriod(form.birthTime));
-                    }
-                  }}
-                />
-              </div>
-              <div className="relative">
-                <label className="mb-2 block text-sm text-white/80">Birth location</label>
-                <Input value={form.location} onChange={(e) => update('location', e.target.value)} onFocus={() => { if (suggestions.length) setSuggestionsOpen(true); }} />
-                {suggestionsOpen && suggestions.length > 0 && (
-                  <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
-                    {suggestions.map((place, idx) => (
-                      <button key={`${place.label}-${idx}`} type="button" onClick={() => chooseSuggestion(place)} className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0">
-                        <div className="font-medium">{place.label}</div>
-                        <div className="mt-1 text-xs text-white/50">{place.timezone}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {selectedLocation && (
-                <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
-                  Using: <strong>{selectedLocation.label}</strong>
-                  <div className="mt-1 text-xs text-emerald-200/80">Timezone: {selectedLocation.timezone}</div>
+        <div style={{ width: '100%' }}>
+          <div
+            style={{
+              background: 'rgba(10,5,30,0.62)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '20px',
+              padding: '24px 20px',
+              backdropFilter: 'blur(16px)',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+              width: '100%',
+            }}
+          >
+            <div style={{ fontSize: '18px', fontWeight: 700, color: 'white', marginBottom: '6px', fontFamily: "'Inter', sans-serif" }}>Start your chart</div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '18px' }}>
+              Time and location are used together, so the app resolves the entered place into a timezone before calculating the chart.
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
+              <UserRound style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
+              <input
+                className="landing-input"
+                value={form.name}
+                onChange={(e) => update('name', e.target.value)}
+                placeholder="Name or Nickname"
+                onFocus={() => setFocusedInput('name')}
+                onBlur={() => setFocusedInput('')}
+                style={getInputStyle('name')}
+              />
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
+              <CalendarDays style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
+              <input
+                className="landing-input"
+                type="text"
+                inputMode="numeric"
+                placeholder="Birth date"
+                value={form.birthDate}
+                onChange={(e) => update('birthDate', formatBirthDateInput(e.target.value))}
+                onFocus={() => setFocusedInput('birthDate')}
+                onBlur={() => setFocusedInput('')}
+                style={getInputStyle('birthDate')}
+              />
+              <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: '12px', pointerEvents: 'none' }}>MM/DD/YYYY  AM</span>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
+              <Clock3 style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
+              <input
+                className="landing-input"
+                type="text"
+                inputMode="text"
+                placeholder="Birth time"
+                value={form.birthTime}
+                onChange={(e) => update('birthTime', formatBirthTimeInput(e.target.value))}
+                onFocus={() => setFocusedInput('birthTime')}
+                onBlur={() => setFocusedInput('')}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    update('birthTime', toggleBirthTimePeriod(form.birthTime));
+                  }
+                }}
+                style={getInputStyle('birthTime')}
+              />
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
+              <MapPin style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.45)', width: 16, height: 16, pointerEvents: 'none' }} />
+              <input
+                className="landing-input"
+                value={form.location}
+                placeholder="Birth location"
+                onChange={(e) => update('location', e.target.value)}
+                onFocus={() => {
+                  setFocusedInput('location');
+                  if (suggestions.length) setSuggestionsOpen(true);
+                }}
+                onBlur={() => setFocusedInput('')}
+                style={getInputStyle('location')}
+              />
+              {suggestionsOpen && suggestions.length > 0 && (
+                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/95 shadow-2xl backdrop-blur-md">
+                  {suggestions.map((place, idx) => (
+                    <button key={`${place.label}-${idx}`} type="button" onClick={() => chooseSuggestion(place)} className="block w-full border-b border-white/5 px-4 py-3 text-left text-sm text-white/90 hover:bg-white/10 last:border-b-0">
+                      <div className="font-medium">{place.label}</div>
+                      <div className="mt-1 text-xs text-white/50">{place.timezone}</div>
+                    </button>
+                  ))}
                 </div>
               )}
-              {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
-              <button onClick={handleSubmit} disabled={disabled || loading} className="w-full rounded-2xl bg-gradient-to-r from-orange-400 via-rose-400 to-fuchsia-500 px-4 py-3 font-semibold text-white shadow-[0_10px_30px_rgba(255,138,76,0.35)] transition hover:brightness-105 disabled:opacity-50">
-                {loading ? 'Resolving location...' : 'Generate dashboard'}
-              </button>
-            </CardContent>
-          </Card>
+            </div>
+            {selectedLocation && (
+              <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                Using: <strong>{selectedLocation.label}</strong>
+                <div className="mt-1 text-xs text-emerald-200/80">Timezone: {selectedLocation.timezone}</div>
+              </div>
+            )}
+            {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-100">{error}</div> : null}
+            <button
+              onClick={handleSubmit}
+              disabled={disabled || loading}
+              style={{
+                width: '100%',
+                height: '52px',
+                background: 'linear-gradient(135deg, #b8720a 0%, #e8a020 50%, #c8860a 100%)',
+                border: 'none',
+                borderRadius: '30px',
+                fontSize: '16px',
+                fontWeight: 700,
+                color: '#1a0a00',
+                fontFamily: "'Cinzel', Georgia, serif",
+                boxShadow: '0 4px 20px rgba(200,130,10,0.4)',
+                cursor: 'pointer',
+                marginTop: '4px',
+                animation: 'pulseGlow 2s ease-in-out infinite',
+                opacity: disabled || loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? 'Resolving location...' : 'Generate dashboard'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 export default function App() {
   const [state, setState] = usePersistedState();
