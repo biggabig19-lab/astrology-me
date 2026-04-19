@@ -872,6 +872,7 @@ function Landing({ onSubmit }) {
         <h1
           className="landing-heading"
           style={{
+            alignSelf: 'center',
             textAlign: 'center',
             color: 'white',
             fontWeight: 700,
